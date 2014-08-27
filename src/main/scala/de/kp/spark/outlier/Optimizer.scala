@@ -32,12 +32,12 @@ object Optimizer {
    */ 
   def optimizeByEntropy(data:RDD[LabeledPoint],range:Range,iterations:Int):Int = {
    
-    val scores = range.par.map(k => (k, clusterEntropy(data, k, iterations))).toList
+    val scores = range.par.map(k => (k, clusterEntropy(data,k,iterations))).toList
     scores.sortBy(_._2).head._1
   
   }
   
-  def clusterEntropy(data: RDD[LabeledPoint], clusters:Int, iterations:Int):Double = {
+  def clusterEntropy(data: RDD[LabeledPoint],clusters:Int,iterations:Int):Double = {
 
     val vectors = data.map(point => Vectors.dense(point.features))
     val model = KMeans.train(vectors,clusters,iterations)
@@ -64,7 +64,7 @@ object Optimizer {
     
   }
 
-  private def distance(a:Array[Double], b:Array[Double]) = 
+  def distance(a:Array[Double], b:Array[Double]) = 
     Math.sqrt(a.zip(b).map(p => p._1 - p._2).map(d => d * d).sum)
 
   /**
