@@ -26,16 +26,45 @@ import akka.util.Timeout
 import akka.actor.{OneForOneStrategy, SupervisorStrategy}
 import akka.routing.RoundRobinRouter
 
-import com.typesafe.config.ConfigFactory
+import de.kp.spark.outlier.Configuration
+import de.kp.spark.outlier.OutlierStatus
 
 import scala.concurrent.duration.DurationInt
 
 class OutlierMaster extends Actor with ActorLogging {
-    
+  
+  /* Load configuration for routers */
+  val (time,retries,workers) = Configuration.router   
+
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries=retries,withinTimeRange = DurationInt(time).minutes) {
+    case _ : Exception => SupervisorStrategy.Restart
+  }
+
+  val router = context.actorOf(Props(new OutlierActor()).withRouter(RoundRobinRouter(workers)))
+
   def receive = {
     
-    case _ => log.info("Unknown request")
+    case req:String => {
+      
+      implicit val ec = context.dispatcher
+
+      val duration = Configuration.actor      
+      implicit val timeout:Timeout = DurationInt(duration).second
+	  	    
+	  val origin = sender
+      val response = ask(router, req).mapTo[String]
+      
+      response.onSuccess {
+        case result => origin ! result
+      }
+      response.onFailure {
+        case result => origin ! OutlierStatus.FAILURE	      
+	  }
+      
+    }
   
+    case _ => {}
+    
   }
 
 }

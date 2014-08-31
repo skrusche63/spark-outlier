@@ -18,15 +18,33 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-case class LabeledPoint(
-  label:String,features:Array[Double]
-)
+import com.typesafe.config.ConfigFactory
 
-case class OutlierRequest()
+object Configuration {
 
-object OutlierStatus {
+    /* Load configuration for router */
+  val path = "application.conf"
+  val config = ConfigFactory.load(path)
+
+  def actor():Int = {
   
-  val FAILURE:String = "failure"
-  val SUCCESS:String = "success"
+    val cfg = config.getConfig("actor")
+    val timeout = cfg.getInt("timeout")
     
+    timeout
+    
+  }
+  
+  def router():(Int,Int,Int) = {
+  
+    val cfg = config.getConfig("router")
+  
+    val time    = cfg.getInt("time")
+    val retries = cfg.getInt("retries")  
+    val workers = cfg.getInt("workers")
+    
+    (time,retries,workers)
+
+  }
+  
 }

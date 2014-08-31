@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.actor
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -17,16 +17,13 @@ package de.kp.spark.outlier
 * 
 * If not, see <http://www.gnu.org/licenses/>.
 */
+import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
-case class LabeledPoint(
-  label:String,features:Array[Double]
-)
+class OutlierActor extends Actor with ActorLogging {
 
-case class OutlierRequest()
-
-object OutlierStatus {
-  
-  val FAILURE:String = "failure"
-  val SUCCESS:String = "success"
+  def receive = {
     
+    case _ => {}
+    
+  }
 }
