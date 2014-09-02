@@ -19,9 +19,9 @@ package de.kp.spark.outlier
 */
 
 import org.apache.spark.rdd.RDD
-
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
+import de.kp.spark.outlier.model.LabeledPoint
 
 object Optimizer {
 

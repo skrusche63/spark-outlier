@@ -27,9 +27,10 @@ import akka.actor.{OneForOneStrategy, SupervisorStrategy}
 import akka.routing.RoundRobinRouter
 
 import de.kp.spark.outlier.Configuration
-import de.kp.spark.outlier.OutlierStatus
+import de.kp.spark.outlier.model._
 
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.Future
 
 class OutlierMaster extends Actor with ActorLogging {
   
@@ -40,7 +41,8 @@ class OutlierMaster extends Actor with ActorLogging {
     case _ : Exception => SupervisorStrategy.Restart
   }
 
-  val router = context.actorOf(Props(new OutlierActor()).withRouter(RoundRobinRouter(workers)))
+  val miner = context.actorOf(Props[OutlierMiner])
+  val questor = context.actorOf(Props[OutlierQuestor].withRouter(RoundRobinRouter(workers)))
 
   def receive = {
     
@@ -52,10 +54,27 @@ class OutlierMaster extends Actor with ActorLogging {
       implicit val timeout:Timeout = DurationInt(duration).second
 	  	    
 	  val origin = sender
-      val response = ask(router, req).mapTo[String]
+	  val deser = OutlierModel.deserializeRequest(req)
+	  val (uid,task) = (deser.uid,deser.task)
+
+	  val response = deser.task match {
+        
+        case "start" => ask(miner,deser).mapTo[OutlierResponse]
+        case "status" => ask(miner,deser).mapTo[OutlierResponse]
+        
+        case "outlier" => ask(questor,deser).mapTo[OutlierResponse]
+       
+        case _ => {
+
+          Future {          
+            val message = OutlierMessages.TASK_IS_UNKNOWN(uid,task)
+            new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)
+          } 
+        }
       
+      }
       response.onSuccess {
-        case result => origin ! result
+        case result => origin ! OutlierModel.serializeResponse(result)
       }
       response.onFailure {
         case result => origin ! OutlierStatus.FAILURE	      

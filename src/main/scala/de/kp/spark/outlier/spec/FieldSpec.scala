@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.spec
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,42 +18,30 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.typesafe.config.ConfigFactory
+import scala.xml._
+import scala.collection.mutable.HashMap
 
-object Configuration {
+object FieldSpec extends Serializable {
+  
+  val path = "fieldspec.xml"
+  val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
-    /* Load configuration for router */
-  val path = "application.conf"
-  val config = ConfigFactory.load(path)
+  private val fields = HashMap.empty[String,String]
+  
+  load()
+  
+  private def load() {
 
-  def actor():Int = {
-  
-    val cfg = config.getConfig("actor")
-    val timeout = cfg.getInt("timeout")
-    
-    timeout
-    
-  }
-
-  def cache():Int = {
-  
-    val cfg = config.getConfig("cache")
-    val maxentries = cfg.getInt("maxentries")
-    
-    maxentries
-    
-  }
-  
-  def router():(Int,Int,Int) = {
-  
-    val cfg = config.getConfig("router")
-  
-    val time    = cfg.getInt("time")
-    val retries = cfg.getInt("retries")  
-    val workers = cfg.getInt("workers")
-    
-    (time,retries,workers)
+    for (field <- root \ "field") {
+      
+      val _type = (field \ "@type").toString
+      val _name = field.text
+      fields += _name -> _type 
+      
+    }
 
   }
-  
+
+  def get = fields.toMap
+
 }

@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.actor
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,42 +18,18 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.typesafe.config.ConfigFactory
+import scala.collection.mutable.HashMap
 
-object Configuration {
+class JobConf {
 
-    /* Load configuration for router */
-  val path = "application.conf"
-  val config = ConfigFactory.load(path)
-
-  def actor():Int = {
+  private val props = HashMap.empty[String,Any]
   
-    val cfg = config.getConfig("actor")
-    val timeout = cfg.getInt("timeout")
-    
-    timeout
-    
+  def set(k:String,v:Any) {
+    props += k -> v
   }
 
-  def cache():Int = {
+  def get(k:String):Option[Any] = props.get(k)
   
-    val cfg = config.getConfig("cache")
-    val maxentries = cfg.getInt("maxentries")
-    
-    maxentries
-    
-  }
-  
-  def router():(Int,Int,Int) = {
-  
-    val cfg = config.getConfig("router")
-  
-    val time    = cfg.getInt("time")
-    val retries = cfg.getInt("retries")  
-    val workers = cfg.getInt("workers")
-    
-    (time,retries,workers)
-
-  }
+  def getProps() = props
   
 }

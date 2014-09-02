@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.actor
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,15 +18,34 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-case class LabeledPoint(
-  label:String,features:Array[Double]
-)
+import org.apache.spark.{SparkConf,SparkContext}
+import org.apache.spark.serializer.KryoSerializer
 
-case class OutlierRequest()
-
-object OutlierStatus {
+trait SparkActor {
   
-  val FAILURE:String = "failure"
-  val SUCCESS:String = "success"
-    
+  protected def createCtxLocal(name:String, props:Map[String,String]):SparkContext = {
+
+    for (prop <- props) {
+      System.setProperty(prop._1,prop._2)      
+    }
+
+    val runtime = Runtime.getRuntime()
+	runtime.gc()
+		
+	val cores = runtime.availableProcessors()
+		
+	val conf = new SparkConf()
+	conf.setMaster("local["+cores+"]")
+		
+	conf.setAppName(name);
+    conf.set("spark.serializer", classOf[KryoSerializer].getName)		
+    /* 
+     * Set the Jetty port to 0 to find a random port
+     */
+    conf.set("spark.ui.port", "0")        
+        
+	new SparkContext(conf)
+		
+  }
+
 }

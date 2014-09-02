@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.source
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,42 +18,22 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.typesafe.config.ConfigFactory
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 
-object Configuration {
+import de.kp.spark.outlier.model.LabeledPoint
 
-    /* Load configuration for router */
-  val path = "application.conf"
-  val config = ConfigFactory.load(path)
+class FileSource(sc:SparkContext) extends Serializable {
 
-  def actor():Int = {
-  
-    val cfg = config.getConfig("actor")
-    val timeout = cfg.getInt("timeout")
+  def connect(input:String):RDD[LabeledPoint] = {
     
-    timeout
+    sc.textFile(input).map(valu => {
+      
+      val Array(label,features) = valu.split(",")  
+      new LabeledPoint(label,features.split(" ").map(_.toDouble))
     
-  }
-
-  def cache():Int = {
-  
-    val cfg = config.getConfig("cache")
-    val maxentries = cfg.getInt("maxentries")
+    }).cache
     
-    maxentries
-    
-  }
-  
-  def router():(Int,Int,Int) = {
-  
-    val cfg = config.getConfig("router")
-  
-    val time    = cfg.getInt("time")
-    val retries = cfg.getInt("retries")  
-    val workers = cfg.getInt("workers")
-    
-    (time,retries,workers)
-
   }
   
 }
