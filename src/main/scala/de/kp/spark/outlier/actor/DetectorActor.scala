@@ -29,15 +29,9 @@ import de.kp.spark.outlier.source.{ElasticSource,FileSource}
 import de.kp.spark.outlier.util.{JobCache,DetectorCache}
 
 class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
-   
-  /* Specification of Spark specific system properties */
-  private val props = Map(
-    "spark.executor.memory"          -> "1g",
-	"spark.kryoserializer.buffer.mb" -> "256"
-  )
   
   /* Create Spark context */
-  private val sc = createCtxLocal("DetectorActor",props)      
+  private val sc = createCtxLocal("DetectorActor",Configuration.spark)      
   
   private val uid = jobConf.get("uid").get.asInstanceOf[String]     
   JobCache.add(uid,OutlierStatus.STARTED)
