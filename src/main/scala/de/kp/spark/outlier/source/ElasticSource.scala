@@ -30,7 +30,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 import de.kp.spark.outlier.model.LabeledPoint
-import de.kp.spark.outlier.spec.FieldSpec
+import de.kp.spark.outlier.spec.{DetectorSpec,PredictorSpec}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -38,7 +38,7 @@ class ElasticSource(sc:SparkContext) extends Serializable {
  
   def connect(conf:HConf):RDD[LabeledPoint] = {
     
-    val spec = sc.broadcast(FieldSpec.get)
+    val spec = sc.broadcast(DetectorSpec.get)
     
     /* Connect to Elasticsearch */
     val source = sc.newAPIHadoopRDD(conf, classOf[EsInputFormat[Text, MapWritable]], classOf[Text], classOf[MapWritable])
@@ -50,6 +50,32 @@ class ElasticSource(sc:SparkContext) extends Serializable {
       val features = data.filter(v => spec.value(v._2) == "Feature").map(_._2.toDouble).toArray
       
       new LabeledPoint(label,features)
+      
+    })
+    
+  }
+  
+  def connect2(conf:HConf):RDD[(String,String,String,Long,String,Float)] = {
+    
+    val spec = sc.broadcast(PredictorSpec.get)
+    
+    /* Connect to Elasticsearch */
+    val source = sc.newAPIHadoopRDD(conf, classOf[EsInputFormat[Text, MapWritable]], classOf[Text], classOf[MapWritable])
+    val dataset = source.map(hit => toMap(hit._2))
+
+    dataset.map(data => {
+      
+      val site = data(spec.value("site")._1)
+      val timestamp = data(spec.value("timestamp")._1).toLong
+
+      val user = data(spec.value("user")._1)      
+      val order = data(spec.value("order")._1)
+
+      val item  = data(spec.value("item")._1)
+      val price  = data(spec.value("price")._1).toFloat
+      
+      
+      (site,user,order,timestamp,item,price)
       
     })
     

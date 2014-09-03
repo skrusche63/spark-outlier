@@ -30,7 +30,7 @@ import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.source.{ElasticSource,FileSource}
 import de.kp.spark.outlier.util.{JobCache,OutlierCache}
 
-class OutlierActor(jobConf:JobConf) extends Actor with SparkActor {
+class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
    
   /* Specification of Spark specific system properties */
   private val props = Map(

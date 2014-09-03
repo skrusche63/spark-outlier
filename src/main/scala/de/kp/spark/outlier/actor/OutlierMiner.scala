@@ -137,14 +137,14 @@ class OutlierMiner extends Actor with ActorLogging {
       val query = source.query.getOrElse(null)
 
       val req = new ElasticRequest(nodes,port,resource,query)
-      val actor = context.actorOf(Props(new OutlierActor(jobConf)))
+      val actor = context.actorOf(Props(new DetectorActor(jobConf)))
       
       ask(actor, req)
         
     } else {
     
       val req = new FileRequest(path)
-      val actor = context.actorOf(Props(new OutlierActor(jobConf)))
+      val actor = context.actorOf(Props(new DetectorActor(jobConf)))
 
       ask(actor, req)
         

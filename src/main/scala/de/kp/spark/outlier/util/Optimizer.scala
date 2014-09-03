@@ -1,4 +1,4 @@
-package de.kp.spark.outlier
+package de.kp.spark.outlier.util
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -19,8 +19,10 @@ package de.kp.spark.outlier
 */
 
 import org.apache.spark.rdd.RDD
+
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
+
 import de.kp.spark.outlier.model.LabeledPoint
 
 object Optimizer {

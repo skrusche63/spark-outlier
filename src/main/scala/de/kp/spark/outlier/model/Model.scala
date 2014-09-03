@@ -23,6 +23,12 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read,write}
 
+case class CommerceItem(id:String,price:Float)
+
+case class CommerceTransaction(site:String,user:String,order:String,timestamp:Long,items:List[CommerceItem])
+
+case class StateSequence(site:String,user:String,states:List[String])
+
 case class LabeledPoint(
   label:String,features:Array[Double]
 )

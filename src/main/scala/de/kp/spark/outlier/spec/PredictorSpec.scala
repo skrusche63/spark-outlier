@@ -21,12 +21,12 @@ package de.kp.spark.outlier.spec
 import scala.xml._
 import scala.collection.mutable.HashMap
 
-object FieldSpec extends Serializable {
+object PredictorSpec {
   
-  val path = "fieldspec.xml"
+  val path = "predictorspec.xml"
   val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
-  private val fields = HashMap.empty[String,String]
+  private val fields = HashMap.empty[String,(String,String)]
   
   load()
   
@@ -34,9 +34,11 @@ object FieldSpec extends Serializable {
 
     for (field <- root \ "field") {
       
-      val _type = (field \ "@type").toString
-      val _name = field.text
-      fields += _name -> _type 
+      val _name  = (field \ "@name").toString
+      val _type  = (field \ "@type").toString
+
+      val _mapping = field.text
+      fields += _name -> (_mapping,_type) 
       
     }
 
