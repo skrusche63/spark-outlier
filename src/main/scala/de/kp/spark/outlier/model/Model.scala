@@ -35,13 +35,33 @@ case class LabeledPoint(
 
 case class OutlierParameters(
   /*
-   * Number of outliers to be returned by the algorithm
+   * The algorithm is applicable for outlier prediction and determines
+   * which metric has to be used: the following metric algorithms are
+   * supported:
+   * 
+   * a) missprob : Miss Probability
+   * b) missrate : Miss Rate
+   * c) entreduc : Entropy Reduction
+   * 
    */
-  k:Int,
+  algorithm:Option[String],
   /*
-   * Strategy to determine cluster homogenity
+   * The parameter 'k' is restricted to outlier detection and determines
+   * the number of outliers to be returned by the detector
    */
-  strategy:Option[String]    
+  k:Option[Int],
+  /*
+   * The parameter 'k' is restructed to outlier detection and specifies
+   * the strategy to be used to determine cluster homogenity
+   */
+  strategy:Option[String],
+  /*
+   * The parameter 'threshold' is restricted to outlier prediction and
+   * specifies the threshold for the prediction algorithm; the parameter
+   * takes values between 0..1. The higher the value, the more likely it
+   * is to have an outlier predicted
+   */
+  threshold:Option[Double]
 )
 
 case class OutlierRequest(
@@ -51,6 +71,13 @@ case class OutlierRequest(
    */
   uid:String,
   task:String,
+  /*
+   * The outlier computation method; actually two different approaches
+   * are available: 'detect' means to find outliers by clustering, and
+   * 'predict' means to find outliers from transaction sequences with
+   * markov models
+   */
+  method:Option[String],
   parameters:Option[OutlierParameters],
   source:Option[OutlierSource]
 )
@@ -58,7 +85,8 @@ case class OutlierRequest(
 case class OutlierResponse(
   uid:String,
   message:Option[String],
-  outliers:Option[List[(Double,LabeledPoint)]],
+  detected:Option[List[(Double,LabeledPoint)]],
+  predicted:Option[List[(String,String,Double,String)]],
   status:String
 )
 
@@ -67,20 +95,10 @@ case class OutlierSource(
    * The path to a file on the HDFS or local file system
    * that holds a textual description of a sequence database
    */
-  path:Option[String],
-  nodes:Option[String],
-  port:Option[String],
-  resource:Option[String],
-  query:Option[String],
-  fields:Option[String]
+  path:Option[String]
 )
 
-case class ElasticRequest(
-  nodes:String,
-  port:String,
-  resource:String,
-  query:String
-)
+case class ElasticRequest()
 
 case class FileRequest(
   path:String
@@ -98,7 +116,11 @@ object OutlierModel {
 
 object OutlierMessages {
  
-  def MISSING_PARAMETERS(uid:String):String = String.format("""Parameter k or strategy is missing for uid '%s'.""", uid)
+  def MISSING_PARAMETERS(uid:String):String = String.format("""Parameters are missing for uid '%s'.""", uid)
+
+  def NO_METHOD_PROVIDED(uid:String):String = String.format("""No method provided for uid '%s'.""", uid)
+
+  def METHOD_NOT_SUPPORTED(uid:String):String = String.format("""The provided is not supported for uid '%s'.""", uid)
 
   def NO_PARAMETERS_PROVIDED(uid:String):String = String.format("""No parameters provided for uid '%s'.""", uid)
 
@@ -118,7 +140,8 @@ object OutlierMessages {
 
 object OutlierStatus {
   
-  val DATASET:String = "dataset"
+  val DATASET:String = "dataset" 
+  val TRAINED:String = "trained"
     
   val STARTED:String = "started"
   val STOPPED:String = "stopped"

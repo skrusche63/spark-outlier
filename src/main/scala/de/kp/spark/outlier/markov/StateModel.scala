@@ -19,6 +19,8 @@ package de.kp.spark.outlier.markov
 */
 
 import org.apache.spark.rdd.RDD
+
+import de.kp.spark.outlier.Configuration
 import de.kp.spark.outlier.model._
 
 import scala.collection.mutable.ArrayBuffer
@@ -32,33 +34,39 @@ object StateModel {
    */
   val FD_STATE_DEFS = Array("LNL","LNN","LNS","LHL","LHN","LHS","MNL","MNN","MNS","MHL","MHN","MHS","HNL","HNN","HNS","HHL","HHN","HHS")
 
-  def build(dataset:RDD[CommerceTransaction],params:Map[String,String]):RDD[StateSequence] = {
-    new StateModel(params).buildStateSeq(dataset)    
+  def build(dataset:RDD[CommerceTransaction]):RDD[StateSequence] = {
+    new StateModel().buildStateSeq(dataset)    
   }
   
 }
 
-class StateModel(params:Map[String,String]) {
+/**
+ * The StateModel holds the business logic for the markov chain based outlier prediction approach; 
+ * it takes 3 different parameters, amount, price and time elasped since last transaction into account 
+ * and transforms an ecommerce transaction into a discrete state 
+ */
+class StateModel() {
   
+  private val model = Configuration.model
   /*
    * The parameters amount high, and norm specify threshold
    * value to determine, whether the amount of a transaction 
    * is classified as Low, Normal or High
    */
-  private val AMOUNT_HIGH:Float = params("amount.height").toFloat
-  private val AMOUNT_NORM:Float = params("amount.norm").toFloat
+  private val AMOUNT_HIGH:Float = model("amount.height").toFloat
+  private val AMOUNT_NORM:Float = model("amount.norm").toFloat
   /*
    * The parameter price high specifies, whether the transaction
    * holds a high price item
    */
-  private val PRICE_HIGH:Float = params("price.high").toFloat
+  private val PRICE_HIGH:Float = model("price.high").toFloat
   /*
    * The parameters date small, and medium specify the days elapsed
    * since the last ecommerce transaction, which are classified as
    * Small, Medium, and Large
    */
-  private val DATE_SMALL:Int  = params("date.small").toInt
-  private val DATE_MEDIUM:Int = params("date.medium").toInt
+  private val DATE_SMALL:Int  = model("date.small").toInt
+  private val DATE_MEDIUM:Int = model("date.medium").toInt
         
   private val DAY = 24 * 60 * 60 * 1000 // day in milliseconds
   

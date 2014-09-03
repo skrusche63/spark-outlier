@@ -19,6 +19,7 @@ package de.kp.spark.outlier
 */
 
 import com.typesafe.config.ConfigFactory
+import org.apache.hadoop.conf.{Configuration => HConf}
 
 object Configuration {
 
@@ -43,7 +44,39 @@ object Configuration {
     maxentries
     
   }
+
+  def elastic():HConf = {
   
+    val cfg = config.getConfig("elastic")
+    val conf = new HConf()                          
+
+    conf.set("es.nodes",cfg.getString("es.nodes"))
+    conf.set("es.port",cfg.getString("es.port"))
+
+    conf.set("es.resource", cfg.getString("es.resource"))                
+    conf.set("es.query", cfg.getString("es.query"))                          
+ 
+    conf
+    
+  }
+
+  def model():Map[String,String] = {
+  
+    val cfg = config.getConfig("model")
+    
+    Map(
+      "amount.height" -> cfg.getString("amount.height"), 
+      "amount.norm"   -> cfg.getString("amount.norm"), 
+
+      "price.high" -> cfg.getString("price.high"), 
+
+      "date.small"  -> cfg.getString("date.small"),
+      "date.medium" -> cfg.getString("date.medium") 
+
+    )
+    
+  }
+
   def router():(Int,Int,Int) = {
   
     val cfg = config.getConfig("router")

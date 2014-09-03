@@ -19,16 +19,17 @@ package de.kp.spark.outlier.actor
 */
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
-
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.{Configuration,OutlierDetector}
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.source.{ElasticSource,FileSource}
-import de.kp.spark.outlier.util.{JobCache,DetectorCache}
+import de.kp.spark.outlier.{Configuration,OutlierPredictor}
+import de.kp.spark.outlier.markov.TransitionMatrix
 
-class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
+import de.kp.spark.outlier.source.{ElasticSource,FileSource}
+import de.kp.spark.outlier.util.{JobCache,PredictorCache}
+
+class PredictorActor(jobConf:JobConf) extends Actor with SparkActor {
    
   /* Specification of Spark specific system properties */
   private val props = Map(
@@ -37,7 +38,7 @@ class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
   )
   
   /* Create Spark context */
-  private val sc = createCtxLocal("DetectorActor",props)      
+  private val sc = createCtxLocal("PredictorActor",props)      
   
   private val uid = jobConf.get("uid").get.asInstanceOf[String]     
   JobCache.add(uid,OutlierStatus.STARTED)
@@ -69,12 +70,17 @@ class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
           val conf = Configuration.elastic                          
 
           val source = new ElasticSource(sc)
-          val dataset = source.features(conf)
+          val dataset = source.items(conf)
 
           JobCache.add(uid,OutlierStatus.DATASET)
-          
-          val (k,strategy) = params     
-          findOutliers(dataset,k,strategy)
+
+          val sequences = OutlierPredictor.prepare(dataset)
+          val model = OutlierPredictor.train(sequences)
+ 
+          JobCache.add(uid,OutlierStatus.TRAINED)
+         
+          val (algorithm,threshold) = params          
+          findOutliers(sequences,algorithm,threshold,model)
 
         } catch {
           case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)          
@@ -100,12 +106,17 @@ class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
           val source = new FileSource(sc)
           
           val path = req.path
-          val dataset = source.features(path)
+          val dataset = source.items(path)
 
           JobCache.add(uid,OutlierStatus.DATASET)
 
-          val (k,strategy) = params          
-          findOutliers(dataset,k,strategy)
+          val sequences = OutlierPredictor.prepare(dataset)
+          val model = OutlierPredictor.train(sequences)
+ 
+          JobCache.add(uid,OutlierStatus.TRAINED)
+         
+          val (algorithm,threshold) = params          
+          findOutliers(sequences,algorithm,threshold,model)
 
         } catch {
           case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)
@@ -122,17 +133,17 @@ class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
     
   }
   
-  private def parameters():(Int,String) = {
+  private def parameters():(String,Double) = {
       
     try {
       
-      val k = jobConf.get("k").get.asInstanceOf[Int]
-      val strategy = jobConf.get("strategy") match {
-        case None => "entropy"
-        case Some(strategy) => strategy.asInstanceOf[String]
+      val threshold = jobConf.get("threshold").get.asInstanceOf[Double]
+      val algorithm = jobConf.get("algorithm") match {
+        case None => "missrate"
+        case Some(algorithm) => algorithm.asInstanceOf[String]
       }
         
-      return (k,strategy)
+      return (algorithm,threshold)
         
     } catch {
       case e:Exception => {
@@ -141,17 +152,17 @@ class DetectorActor(jobConf:JobConf) extends Actor with SparkActor {
     }
     
   }
-  
-  private def findOutliers(dataset:RDD[LabeledPoint],k:Int,strategy:String) {
+    
+  private def findOutliers(sequences:RDD[StateSequence],algorithm:String,threshold:Double,model:TransitionMatrix) {
+         
+    val outliers = OutlierPredictor.predict(sequences,algorithm,threshold,model).collect().toList
           
-    val outliers = OutlierDetector.find(dataset,strategy,100,k).toList
-          
-    /* Put outliers to DetectorCache */
-    DetectorCache.add(uid,outliers)
+    /* Put outliers to PredictorCache */
+    PredictorCache.add(uid,outliers)
           
     /* Update JobCache */
     JobCache.add(uid,OutlierStatus.FINISHED)
     
   }
-  
+
 }

@@ -27,7 +27,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object OutlierPredictor extends Serializable {
 
-  def predict(sequences:RDD[StateSequence],algorithm:String,threshold:Double,matrix:TransitionMatrix) {
+  def predict(sequences:RDD[StateSequence],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,Double,String)] = {
 
     val sc = sequences.context
     val bmatrix = sc.broadcast(matrix)
@@ -59,7 +59,7 @@ object OutlierPredictor extends Serializable {
   /*
    * Format: (site,user,order,timestamp,item,price)
    */
-  def prepare(source:RDD[(String,String,String,Long,String,Float)],params:Map[String,String]):RDD[StateSequence] = {
+  def prepare(source:RDD[(String,String,String,Long,String,Float)]):RDD[StateSequence] = {
     
     /*
      * Group source by 'order' and aggregate all items of a 
@@ -83,7 +83,7 @@ object OutlierPredictor extends Serializable {
     })
 
     /* Transform commerce transactions into state sequences */
-    StateModel.build(transactions, params)
+    StateModel.build(transactions)
     
   }
   

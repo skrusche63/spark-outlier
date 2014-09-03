@@ -36,7 +36,10 @@ import scala.collection.mutable.ArrayBuffer
 
 class ElasticSource(sc:SparkContext) extends Serializable {
  
-  def connect(conf:HConf):RDD[LabeledPoint] = {
+  /**
+   * Load labeled features from an Elasticsearch cluster
+   */
+  def features(conf:HConf):RDD[LabeledPoint] = {
     
     val spec = sc.broadcast(DetectorSpec.get)
     
@@ -54,8 +57,11 @@ class ElasticSource(sc:SparkContext) extends Serializable {
     })
     
   }
-  
-  def connect2(conf:HConf):RDD[(String,String,String,Long,String,Float)] = {
+  /**
+   * Load ecommerce items that refer to a certain site (tenant), user
+   * and transaction or order
+   */
+  def items(conf:HConf):RDD[(String,String,String,Long,String,Float)] = {
     
     val spec = sc.broadcast(PredictorSpec.get)
     

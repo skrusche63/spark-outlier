@@ -19,16 +19,14 @@ package de.kp.spark.outlier.util
 */
 
 import de.kp.spark.outlier.Configuration
-import de.kp.spark.outlier.model._
-
 import java.util.Date
 
-object OutlierCache {
+object PredictorCache {
   
   private val maxentries = Configuration.cache  
-  private val cache = new LRUCache[(String,Long),List[(Double,LabeledPoint)]](maxentries)
+  private val cache = new LRUCache[(String,Long),List[(String,String,Double,String)]](maxentries)
 
-  def add(uid:String,outliers:List[(Double,LabeledPoint)]) {
+  def add(uid:String,outliers:List[(String,String,Double,String)]) {
    
     val now = new Date()
     val timestamp = now.getTime()
@@ -47,7 +45,7 @@ object OutlierCache {
     
   }
   
-  def outliers(uid:String):List[(Double,LabeledPoint)] = {
+  def outliers(uid:String):List[(String,String,Double,String)] = {
     
     val keys = cache.keys().filter(key => key._1 == uid)
     if (keys.size == 0) {    

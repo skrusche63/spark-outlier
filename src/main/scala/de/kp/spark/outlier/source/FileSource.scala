@@ -25,7 +25,10 @@ import de.kp.spark.outlier.model.LabeledPoint
 
 class FileSource(sc:SparkContext) extends Serializable {
 
-  def connect(input:String):RDD[LabeledPoint] = {
+  /**
+   * Load labeled features from the file system
+   */
+  def features(input:String):RDD[LabeledPoint] = {
     
     sc.textFile(input).map(valu => {
       
@@ -35,5 +38,20 @@ class FileSource(sc:SparkContext) extends Serializable {
     }).cache
     
   }
-  
+
+  /**
+   * Load ecommerce items from the file system
+   */
+  def items(input:String):RDD[(String,String,String,Long,String,Float)] = {
+
+    sc.textFile(input).map(valu => {
+      
+      val Array(site,user,order,timestamp,item,price) = valu.split(",")  
+      (site,user,order,timestamp.toLong,item,price.toFloat)
+
+    
+    }).cache
+    
+  }
+
 }

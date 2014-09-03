@@ -68,7 +68,7 @@ class OutlierMaster extends Actor with ActorLogging {
 
           Future {          
             val message = OutlierMessages.TASK_IS_UNKNOWN(uid,task)
-            new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)
+            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
           } 
         }
       

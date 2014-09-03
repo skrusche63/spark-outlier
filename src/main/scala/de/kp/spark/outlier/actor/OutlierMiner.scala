@@ -26,7 +26,7 @@ import akka.util.Timeout
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.util.{JobCache,OutlierCache}
+import de.kp.spark.outlier.util.{JobCache,DetectorCache}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -47,28 +47,47 @@ class OutlierMiner extends Actor with ActorLogging {
         case "start" => {
           
           val source = req.source.getOrElse(null)
+          
+          val method = req.method.getOrElse(null)
           val parameters = req.parameters.getOrElse(null)          
           
-          val response = validateStart(uid,parameters,source) match {
+          val response = validateStart(uid,method,parameters,source) match {
             
             case None => {
               /* Build job configuration */
               val jobConf = new JobConf()
                 
               jobConf.set("uid",uid)
-              jobConf.set("k",parameters.k)
+              /* Assign parameters provided */
+
+              parameters.algorithm match {
+                /* Default algorithm is the 'missrate' algorithm */
+                case None => jobConf.set("algorithm","missrate")
+                case Some(algorithm) => jobConf.set("algorithm",algorithm)
+              }
+              
+              parameters.k match {
+                case None => jobConf.set("k",10)
+                case Some(k) => jobConf.set("k",k)
+              }
                
               parameters.strategy match {
-                case None => {}
+                case None => jobConf.set("strategy","entropy")
                 case Some(strategy) => jobConf.set("strategy",strategy)
               }
+               
+              parameters.threshold match {
+                case None => jobConf.set("threshold",0.95)
+                case Some(threshold) => jobConf.set("threshold",threshold)
+              }
+              
               /* Start job */
-              startJob(jobConf,source).mapTo[OutlierResponse]
+              startJob(jobConf,method,source).mapTo[OutlierResponse]
               
             }
             
             case Some(message) => {
-              Future {new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)} 
+              Future {new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)} 
               
             }
             
@@ -80,7 +99,7 @@ class OutlierMiner extends Actor with ActorLogging {
 
           response.onFailure {
             case message => {             
-              val resp = new OutlierResponse(uid,Some(message.toString),None,OutlierStatus.FAILURE)
+              val resp = new OutlierResponse(uid,Some(message.toString),None,None,OutlierStatus.FAILURE)
               origin ! OutlierModel.serializeResponse(resp)	                  
             }	  
           }
@@ -93,11 +112,11 @@ class OutlierMiner extends Actor with ActorLogging {
            */
           val resp = if (JobCache.exists(uid) == false) {           
             val message = OutlierMessages.TASK_DOES_NOT_EXIST(uid)
-            new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)
+            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
             
           } else {            
             val status = JobCache.status(uid)
-            new OutlierResponse(uid,None,None,status)
+            new OutlierResponse(uid,None,None,None,status)
             
           }
            
@@ -108,7 +127,7 @@ class OutlierMiner extends Actor with ActorLogging {
         case _ => {
           
           val message = OutlierMessages.TASK_IS_UNKNOWN(uid,task)
-          val resp = new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)
+          val resp = new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
            
           origin ! OutlierModel.serializeResponse(resp)
            
@@ -122,37 +141,32 @@ class OutlierMiner extends Actor with ActorLogging {
   
   }
   
-  private def startJob(jobConf:JobConf,source:OutlierSource):Future[Any] = {
+  private def startJob(jobConf:JobConf,method:String,source:OutlierSource):Future[Any] = {
 
     val duration = Configuration.actor      
     implicit val timeout:Timeout = DurationInt(duration).second
 
+    val actor = method match {
+      case "detect" => context.actorOf(Props(new DetectorActor(jobConf)))
+      case "predict" => context.actorOf(Props(new PredictorActor(jobConf)))
+    }
+
     val path = source.path.getOrElse(null)
     if (path == null) {
-        
-      val nodes = source.nodes.getOrElse(null)
-      val port  = source.port.getOrElse(null)
-        
-      val resource = source.resource.getOrElse(null)
-      val query = source.query.getOrElse(null)
 
-      val req = new ElasticRequest(nodes,port,resource,query)
-      val actor = context.actorOf(Props(new DetectorActor(jobConf)))
-      
+      val req = new ElasticRequest()      
       ask(actor, req)
         
     } else {
     
       val req = new FileRequest(path)
-      val actor = context.actorOf(Props(new DetectorActor(jobConf)))
-
       ask(actor, req)
         
     }
   
   }
 
-  private def validateStart(uid:String,parameters:OutlierParameters,source:OutlierSource):Option[String] = {
+  private def validateStart(uid:String,method:String,parameters:OutlierParameters,source:OutlierSource):Option[String] = {
 
     if (JobCache.exists(uid)) {            
       val message = OutlierMessages.TASK_ALREADY_STARTED(uid)
@@ -171,7 +185,18 @@ class OutlierMiner extends Actor with ActorLogging {
       return Some(message)
  
     }
+    
+    if (method == null) {
+      val message = OutlierMessages.NO_METHOD_PROVIDED(uid)
+      return Some(message) 
+    }
 
+    if (method != "detect" && method != "predict") {
+      val message = OutlierMessages.METHOD_NOT_SUPPORTED(uid)
+      return Some(message) 
+      
+    }
+    
     None
     
   }

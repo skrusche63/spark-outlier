@@ -21,7 +21,7 @@ package de.kp.spark.outlier.actor
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.util.OutlierCache
+import de.kp.spark.outlier.util.{DetectorCache,PredictorCache}
 
 class OutlierQuestor extends Actor with ActorLogging {
 
@@ -38,13 +38,41 @@ class OutlierQuestor extends Actor with ActorLogging {
         
         case "outlier" => {
 
-          val resp = if (OutlierCache.exists(uid) == false) {           
-            val message = OutlierMessages.OUTLIERS_DO_NOT_EXIST(uid)
-            new OutlierResponse(uid,Some(message),None,OutlierStatus.FAILURE)
+          val method = req.method.getOrElse(null)
+          val resp = if (method == null) {
+            val message = OutlierMessages.NO_METHOD_PROVIDED(uid)
+            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE) 
+          
+          } else {
+            if (method == "detect") {
+
+              if (DetectorCache.exists(uid) == false) {           
+                val message = OutlierMessages.OUTLIERS_DO_NOT_EXIST(uid)
+                new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
             
-          } else {            
-            val outliers = OutlierCache.outliers(uid)
-            new OutlierResponse(uid,None,Some(outliers),OutlierStatus.SUCCESS)
+              } else {            
+                val outliers = DetectorCache.outliers(uid)
+                new OutlierResponse(uid,None,Some(outliers),None,OutlierStatus.SUCCESS)
+            
+              }
+              
+            } else if (method == "predict") {
+
+              if (PredictorCache.exists(uid) == false) {           
+                val message = OutlierMessages.OUTLIERS_DO_NOT_EXIST(uid)
+                new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
+            
+              } else {            
+                val outliers = PredictorCache.outliers(uid)
+                new OutlierResponse(uid,None,None,Some(outliers),OutlierStatus.SUCCESS)
+            
+              }
+            
+            } else {
+              val message = OutlierMessages.METHOD_NOT_SUPPORTED(uid)
+              new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE) 
+      
+            }
             
           }
            
