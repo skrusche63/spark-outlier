@@ -24,9 +24,9 @@ import java.util.Date
 object PredictorCache {
   
   private val maxentries = Configuration.cache  
-  private val cache = new LRUCache[(String,Long),List[(String,String,Double,String)]](maxentries)
+  private val cache = new LRUCache[(String,Long),List[(String,String,List[String],Double,String)]](maxentries)
 
-  def add(uid:String,outliers:List[(String,String,Double,String)]) {
+  def add(uid:String,outliers:List[(String,String,List[String],Double,String)]) {
    
     val now = new Date()
     val timestamp = now.getTime()
@@ -45,7 +45,7 @@ object PredictorCache {
     
   }
   
-  def outliers(uid:String):List[(String,String,Double,String)] = {
+  def outliers(uid:String):List[(String,String,List[String],Double,String)] = {
     
     val keys = cache.keys().filter(key => key._1 == uid)
     if (keys.size == 0) {    

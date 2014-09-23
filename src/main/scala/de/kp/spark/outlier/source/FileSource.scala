@@ -21,16 +21,19 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.outlier.Configuration
 import de.kp.spark.outlier.model.LabeledPoint
 
-class FileSource(sc:SparkContext) extends Serializable {
+class FileSource(@transient sc:SparkContext) extends Serializable {
+
+  val (fItems,fFeatures) = Configuration.file()
 
   /**
    * Load labeled features from the file system
    */
-  def features(input:String):RDD[LabeledPoint] = {
+  def features():RDD[LabeledPoint] = {
     
-    sc.textFile(input).map(valu => {
+    sc.textFile(fFeatures).map(valu => {
       
       val Array(label,features) = valu.split(",")  
       new LabeledPoint(label,features.split(" ").map(_.toDouble))
@@ -42,9 +45,9 @@ class FileSource(sc:SparkContext) extends Serializable {
   /**
    * Load ecommerce items from the file system
    */
-  def items(input:String):RDD[(String,String,String,Long,String,Float)] = {
+  def items():RDD[(String,String,String,Long,String,Float)] = {
 
-    sc.textFile(input).map(valu => {
+    sc.textFile(fItems).map(valu => {
       
       val Array(site,user,order,timestamp,item,price) = valu.split(",")  
       (site,user,order,timestamp.toLong,item,price.toFloat)

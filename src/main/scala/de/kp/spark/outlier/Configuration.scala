@@ -59,6 +59,17 @@ object Configuration {
     conf
     
   }
+   
+  def file():(String,String) = {
+  
+    val cfg = config.getConfig("file")
+    
+    val items = cfg.getString("items")   
+    val features = cfg.getString("features")   
+   
+    (items,features)
+    
+  }
 
   def model():Map[String,String] = {
   

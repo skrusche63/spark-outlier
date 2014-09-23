@@ -54,22 +54,21 @@ class OutlierMaster extends Actor with ActorLogging {
       implicit val timeout:Timeout = DurationInt(duration).second
 	  	    
 	  val origin = sender
-	  val deser = OutlierModel.deserializeRequest(req)
-	  val (uid,task) = (deser.uid,deser.task)
 
+	  val deser = OutlierModel.deserializeRequest(req)
 	  val response = deser.task match {
         
-        case "start" => ask(miner,deser).mapTo[OutlierResponse]
-        case "status" => ask(miner,deser).mapTo[OutlierResponse]
+        case "train"  => ask(miner,deser).mapTo[ServiceResponse]
+        case "status" => ask(miner,deser).mapTo[ServiceResponse]
         
-        case "outlier" => ask(questor,deser).mapTo[OutlierResponse]
+        case "predict" => ask(questor,deser).mapTo[ServiceResponse]
        
         case _ => {
 
           Future {          
-            val message = OutlierMessages.TASK_IS_UNKNOWN(uid,task)
-            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
+            failure(deser,Messages.TASK_IS_UNKNOWN(deser.data("uid"),deser.task))
           } 
+
         }
       
       }
@@ -77,12 +76,19 @@ class OutlierMaster extends Actor with ActorLogging {
         case result => origin ! OutlierModel.serializeResponse(result)
       }
       response.onFailure {
-        case result => origin ! OutlierStatus.FAILURE	      
+        case result => origin ! failure(deser,Messages.GENERAL_ERROR(deser.data("uid")))	      
 	  }
       
     }
   
     case _ => {}
+    
+  }
+
+  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
+    
+    val data = Map("uid" -> req.data("uid"), "message" -> message)
+    new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
     
   }
 

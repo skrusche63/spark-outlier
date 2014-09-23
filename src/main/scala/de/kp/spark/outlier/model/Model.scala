@@ -23,6 +23,13 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read,write}
 
+case class ServiceRequest(
+  service:String,task:String,data:Map[String,String]
+)
+case class ServiceResponse(
+  service:String,task:String,data:Map[String,String],status:String
+)
+
 case class CommerceItem(id:String,price:Float)
 
 case class CommerceTransaction(site:String,user:String,order:String,timestamp:Long,items:List[CommerceItem])
@@ -104,17 +111,38 @@ case class FileRequest(
   path:String
 )
 
+object Algorithms {
+  
+  val KMEANS:String = "KMEANS"
+  val MARKOV:String = "MARKOV"
+    
+}
+
+object Sources {
+  /* The names of the data source actually supported */
+  val FILE:String    = "FILE"
+  val ELASTIC:String = "ELASTIC" 
+  val JDBC:String    = "JDBC"    
+  val PIWIK:String   = "PIWIK"    
+}
+
 object OutlierModel {
     
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  def serializeResponse(response:OutlierResponse):String = write(response)
+  def serializeResponse(response:ServiceResponse):String = write(response)
   
-  def deserializeRequest(request:String):OutlierRequest = read[OutlierRequest](request)
+  def deserializeRequest(request:String):ServiceRequest = read[ServiceRequest](request)
   
 }
 
-object OutlierMessages {
+object Messages {
+
+  def ALGORITHM_IS_UNKNOWN(uid:String,algorithm:String):String = String.format("""Algorithm '%s' is unknown for uid '%s'.""", algorithm, uid)
+
+  def GENERAL_ERROR(uid:String):String = String.format("""A general error appeared for uid '%s'.""", uid)
+ 
+  def NO_ALGORITHM_PROVIDED(uid:String):String = String.format("""No algorithm provided for uid '%s'.""", uid)
  
   def MISSING_PARAMETERS(uid:String):String = String.format("""Parameters are missing for uid '%s'.""", uid)
 
@@ -129,6 +157,8 @@ object OutlierMessages {
   def OUTLIER_DETECTION_STARTED(uid:String) = String.format("""Outlier detection started for uid '%s'.""", uid)
 
   def OUTLIERS_DO_NOT_EXIST(uid:String):String = String.format("""The outliers for uid '%s' do not exist.""", uid)
+
+  def SOURCE_IS_UNKNOWN(uid:String,source:String):String = String.format("""Source '%s' is unknown for uid '%s'.""", source, uid)
 
   def TASK_ALREADY_STARTED(uid:String):String = String.format("""The task with uid '%s' is already started.""", uid)
 

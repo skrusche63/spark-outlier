@@ -29,17 +29,24 @@ import org.elasticsearch.hadoop.mr.EsInputFormat
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
+import de.kp.spark.outlier.Configuration
+
 import de.kp.spark.outlier.model.LabeledPoint
 import de.kp.spark.outlier.spec.{DetectorSpec,PredictorSpec}
 
 import scala.collection.mutable.ArrayBuffer
 
-class ElasticSource(sc:SparkContext) extends Serializable {
+// TODO: Check whether a single conf for features and items is sufficient
+
+class ElasticSource(@transient sc:SparkContext) extends Serializable {
+          
+  /* Retrieve data from Elasticsearch */    
+  val conf = Configuration.elastic                          
  
   /**
    * Load labeled features from an Elasticsearch cluster
    */
-  def features(conf:HConf):RDD[LabeledPoint] = {
+  def features():RDD[LabeledPoint] = {
     
     val spec = sc.broadcast(DetectorSpec.get)
     
@@ -49,10 +56,16 @@ class ElasticSource(sc:SparkContext) extends Serializable {
 
     dataset.map(data => {
       
-      val label = data.filter(v => spec.value(v._1) == "Label").head._2
-      val features = data.filter(v => spec.value(v._2) == "Feature").map(_._2.toDouble).toArray
+      val fields = spec.value
+
+      val label = data(fields.head)
+      val features = ArrayBuffer.empty[Double]
       
-      new LabeledPoint(label,features)
+      for (field <- fields.tail) {
+        features += data(field).toDouble
+      }
+      
+      new LabeledPoint(label,features.toArray)
       
     })
     
@@ -61,7 +74,7 @@ class ElasticSource(sc:SparkContext) extends Serializable {
    * Load ecommerce items that refer to a certain site (tenant), user
    * and transaction or order
    */
-  def items(conf:HConf):RDD[(String,String,String,Long,String,Float)] = {
+  def items():RDD[(String,String,String,Long,String,Float)] = {
     
     val spec = sc.broadcast(PredictorSpec.get)
     

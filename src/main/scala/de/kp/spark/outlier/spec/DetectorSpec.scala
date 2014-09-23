@@ -19,29 +19,25 @@ package de.kp.spark.outlier.spec
 */
 
 import scala.xml._
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.ArrayBuffer
 
 object DetectorSpec extends Serializable {
   
   val path = "detectorspec.xml"
   val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
-  private val fields = HashMap.empty[String,String]
+  private val fields = ArrayBuffer.empty[String]
   
   load()
   
   private def load() {
 
     for (field <- root \ "field") {
-      
-      val _type = (field \ "@type").toString
-      val _name = field.text
-      fields += _name -> _type 
-      
+      fields += field.text 
     }
 
   }
 
-  def get = fields.toMap
+  def get = fields.toList
 
 }

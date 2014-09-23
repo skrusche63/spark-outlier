@@ -35,61 +35,24 @@ class OutlierMiner extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
   
+  private val algorithms = Array(Algorithms.KMEANS,Algorithms.MARKOV)
+  private val sources = Array(Sources.FILE,Sources.ELASTIC,Sources.JDBC,Sources.PIWIK)
+  
   def receive = {
     
-    case req:OutlierRequest => {
+    case req:ServiceRequest => {
       
       val origin = sender
+      val uid = req.data("uid")
       
-      val (uid,task) = (req.uid,req.task)
-      task match {
+      req.task match {
         
-        case "start" => {
+        case "predict" => {
           
-          val source = req.source.getOrElse(null)
-          
-          val method = req.method.getOrElse(null)
-          val parameters = req.parameters.getOrElse(null)          
-          
-          val response = validateStart(uid,method,parameters,source) match {
+          val response = validate(req.data) match {
             
-            case None => {
-              /* Build job configuration */
-              val jobConf = new JobConf()
-                
-              jobConf.set("uid",uid)
-              /* Assign parameters provided */
-
-              parameters.algorithm match {
-                /* Default algorithm is the 'missrate' algorithm */
-                case None => jobConf.set("algorithm","missrate")
-                case Some(algorithm) => jobConf.set("algorithm",algorithm)
-              }
-              
-              parameters.k match {
-                case None => jobConf.set("k",10)
-                case Some(k) => jobConf.set("k",k)
-              }
-               
-              parameters.strategy match {
-                case None => jobConf.set("strategy","entropy")
-                case Some(strategy) => jobConf.set("strategy",strategy)
-              }
-               
-              parameters.threshold match {
-                case None => jobConf.set("threshold",0.95)
-                case Some(threshold) => jobConf.set("threshold",threshold)
-              }
-              
-              /* Start job */
-              startJob(jobConf,method,source).mapTo[OutlierResponse]
-              
-            }
-            
-            case Some(message) => {
-              Future {new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)} 
-              
-            }
+            case None => train(req).mapTo[ServiceResponse]            
+            case Some(message) => Future {failure(req,message)}
             
           }
 
@@ -98,39 +61,33 @@ class OutlierMiner extends Actor with ActorLogging {
           }
 
           response.onFailure {
-            case message => {             
-              val resp = new OutlierResponse(uid,Some(message.toString),None,None,OutlierStatus.FAILURE)
+            case throwable => {             
+              val resp = failure(req,throwable.toString)
               origin ! OutlierModel.serializeResponse(resp)	                  
-            }	  
+           }	  
           }
          
         }
        
         case "status" => {
-          /*
-           * Job MUST exist the return actual status
-           */
+          
           val resp = if (JobCache.exists(uid) == false) {           
-            val message = OutlierMessages.TASK_DOES_NOT_EXIST(uid)
-            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
+            failure(req,Messages.TASK_DOES_NOT_EXIST(uid))
             
           } else {            
-            val status = JobCache.status(uid)
-            new OutlierResponse(uid,None,None,None,status)
+            status(req)
             
           }
            
           origin ! OutlierModel.serializeResponse(resp)
-           
+            
         }
         
         case _ => {
           
-          val message = OutlierMessages.TASK_IS_UNKNOWN(uid,task)
-          val resp = new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
-           
-          origin ! OutlierModel.serializeResponse(resp)
-           
+          val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
+          origin ! OutlierModel.serializeResponse(failure(req,msg))
+          
         }
         
       }
@@ -141,63 +98,82 @@ class OutlierMiner extends Actor with ActorLogging {
   
   }
   
-  private def startJob(jobConf:JobConf,method:String,source:OutlierSource):Future[Any] = {
+  private def train(req:ServiceRequest):Future[Any] = {
 
     val duration = Configuration.actor      
     implicit val timeout:Timeout = DurationInt(duration).second
-
-    val actor = method match {
-      case "detect" => context.actorOf(Props(new DetectorActor(jobConf)))
-      case "predict" => context.actorOf(Props(new PredictorActor(jobConf)))
-    }
-
-    val path = source.path.getOrElse(null)
-    if (path == null) {
-
-      val req = new ElasticRequest()      
-      ask(actor, req)
-        
-    } else {
     
-      val req = new FileRequest(path)
-      ask(actor, req)
+    ask(actor(req), req)
+  
+  }
+
+  private def status(req:ServiceRequest):ServiceResponse = {
+    
+    val uid = req.data("uid")
+    val data = Map("uid" -> uid)
+                
+    new ServiceResponse(req.service,req.task,data,JobCache.status(uid))	
+
+  }
+
+  private def validate(params:Map[String,String]):Option[String] = {
+
+    val uid = params("uid")
+ 
+    if (JobCache.exists(uid)) {            
+      val message = Messages.TASK_ALREADY_STARTED(uid)
+      return Some(message)
+    
+    }
+    
+    params.get("algorithm") match {
         
+      case None => {
+        return Some(Messages.NO_ALGORITHM_PROVIDED(uid))              
+      }
+        
+      case Some(algorithm) => {
+        if (algorithms.contains(algorithm) == false) {
+          return Some(Messages.ALGORITHM_IS_UNKNOWN(uid,algorithm))    
+        }
+          
+      }
+    
+    }  
+    
+    params.get("source") match {
+        
+      case None => {
+        return Some(Messages.NO_SOURCE_PROVIDED(uid))          
+      }
+        
+      case Some(source) => {
+        if (sources.contains(source) == false) {
+          return Some(Messages.SOURCE_IS_UNKNOWN(uid,source))    
+        }          
+      }
+        
+    }
+    
+    None
+    
+  }
+
+  private def actor(req:ServiceRequest):ActorRef = {
+
+    val algorithm = req.data("algorithm")
+    if (algorithm == Algorithms.KMEANS) {      
+      context.actorOf(Props(new KMeansActor()))      
+    } else {
+     context.actorOf(Props(new MarkovActor()))
     }
   
   }
 
-  private def validateStart(uid:String,method:String,parameters:OutlierParameters,source:OutlierSource):Option[String] = {
-
-    if (JobCache.exists(uid)) {            
-      val message = OutlierMessages.TASK_ALREADY_STARTED(uid)
-      return Some(message)
+  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
     
-    }
-    
-    if (parameters == null) {
-      val message = OutlierMessages.NO_PARAMETERS_PROVIDED(uid)
-      return Some(message)
-      
-    }
-    
-    if (source == null) {
-      val message = OutlierMessages.NO_SOURCE_PROVIDED(uid)
-      return Some(message)
- 
-    }
-    
-    if (method == null) {
-      val message = OutlierMessages.NO_METHOD_PROVIDED(uid)
-      return Some(message) 
-    }
-
-    if (method != "detect" && method != "predict") {
-      val message = OutlierMessages.METHOD_NOT_SUPPORTED(uid)
-      return Some(message) 
-      
-    }
-    
-    None
+    val data = Map("uid" -> req.data("uid"), "message" -> message)
+    new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
     
   }
 

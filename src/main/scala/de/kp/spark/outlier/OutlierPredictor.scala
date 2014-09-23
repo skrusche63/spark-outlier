@@ -27,7 +27,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object OutlierPredictor extends Serializable {
 
-  def predict(sequences:RDD[StateSequence],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,Double,String)] = {
+  def predict(sequences:RDD[StateSequence],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,List[String],Double,String)] = {
 
     val sc = sequences.context
     val bmatrix = sc.broadcast(matrix)
@@ -46,7 +46,7 @@ object OutlierPredictor extends Serializable {
       }
       
       val flag = if (metric > threshold) "yes" else "no"      
-      (site,user,metric,flag)
+      (site,user,states,metric,flag)
       
     })
     

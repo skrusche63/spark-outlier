@@ -20,63 +20,98 @@ package de.kp.spark.outlier.actor
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
+import de.kp.spark.outlier.{Detection,Feature,Prediction}
+
 import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.util.{DetectorCache,PredictorCache}
+
+import de.kp.spark.outlier.spec.DetectorSpec
+import scala.collection.mutable.ArrayBuffer
 
 class OutlierQuestor extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
+  val spec = DetectorSpec.get
 
   def receive = {
     
-    case req:OutlierRequest => {
+    case req:ServiceRequest => {
       
       val origin = sender
+      val uid = req.data("uid")
       
-      val (uid,task) = (req.uid,req.task)
-      task match {
+      req.task match {
         
-        case "outlier" => {
+        case "predict" => {
 
-          val method = req.method.getOrElse(null)
-          val resp = if (method == null) {
-            val message = OutlierMessages.NO_METHOD_PROVIDED(uid)
-            new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE) 
-          
-          } else {
-            if (method == "detect") {
-
-              if (DetectorCache.exists(uid) == false) {           
-                val message = OutlierMessages.OUTLIERS_DO_NOT_EXIST(uid)
-                new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
+          val algorithm = req.data("algorithm")
+          val response = algorithm match {
             
-              } else {            
-                val outliers = DetectorCache.outliers(uid)
-                new OutlierResponse(uid,None,Some(outliers),None,OutlierStatus.SUCCESS)
+            case Algorithms.KMEANS => {
+
+              if (DetectorCache.exists(uid) == false) {    
+                failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            
+              } else {         
+                
+                /* Retrieve and serialize detected outliers */
+                val outliers = DetectorCache.outliers(uid).map(outlier => {
+                  
+                  val (distance,point) = outlier
+                  val (label,values) = (point.label,point.features)
+                  
+                  val features = ArrayBuffer.empty[Feature]
+                  (1 until spec.length).foreach(i => {
+                    
+                    val name  = spec(i)
+                    val value = values(i-1)
+                    
+                    features += new Feature(name,value)
+                  
+                  })
+                  
+                  new Detection(distance,label,features.toList).toJSON
+                  
+                }).mkString(",")
+
+                val data = Map("uid" -> uid, "outliers" -> outliers)            
+                new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
+             
+              }
+              
+            }
+            
+            case Algorithms.MARKOV => {
+
+              if (PredictorCache.exists(uid) == false) {   
+                failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            
+              } else {       
+                
+                /* Retrieve and serialize predicted outliers */
+                val outliers = PredictorCache.outliers(uid).map(o => Prediction(o._1,o._2,o._3,o._4,o._5).toJSON).mkString(",")
+
+                val data = Map("uid" -> uid, "outliers" -> outliers)            
+                new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
             
               }
               
-            } else if (method == "predict") {
-
-              if (PredictorCache.exists(uid) == false) {           
-                val message = OutlierMessages.OUTLIERS_DO_NOT_EXIST(uid)
-                new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE)
+            }
             
-              } else {            
-                val outliers = PredictorCache.outliers(uid)
-                new OutlierResponse(uid,None,None,Some(outliers),OutlierStatus.SUCCESS)
-            
-              }
-            
-            } else {
-              val message = OutlierMessages.METHOD_NOT_SUPPORTED(uid)
-              new OutlierResponse(uid,Some(message),None,None,OutlierStatus.FAILURE) 
-      
+            case _ => {
+             failure(req,Messages.METHOD_NOT_SUPPORTED(uid))              
             }
             
           }
            
-          origin ! OutlierModel.serializeResponse(resp)
+          origin ! OutlierModel.serializeResponse(response)
+           
+        }
+        
+        case _ => {
+          
+          val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
+          origin ! OutlierModel.serializeResponse(failure(req,msg))
            
         }
         
@@ -85,4 +120,12 @@ class OutlierQuestor extends Actor with ActorLogging {
     }
   
   }
+ 
+  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
+    
+    val data = Map("uid" -> req.data("uid"), "message" -> message)
+    new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
+    
+  }
+ 
 }
