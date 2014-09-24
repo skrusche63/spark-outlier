@@ -22,10 +22,10 @@ import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.{Configuration,OutlierDetector}
+import de.kp.spark.outlier.{Configuration,KMeansDetector}
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.source.{ElasticSource,FileSource}
+import de.kp.spark.outlier.source.FeatureSource
 import de.kp.spark.outlier.util.{JobCache,DetectorCache}
 
 class KMeansActor extends Actor with SparkActor {
@@ -44,50 +44,17 @@ class KMeansActor extends Actor with SparkActor {
       sender ! response(req, (params == null))
 
       if (params != null) {
-        /* Register status */
-        JobCache.add(uid,OutlierStatus.STARTED)
  
         try {
-          
-          val source = req.data("source")
-          val dataset = source match {
-            
-            /* 
-             * Discover outliers from feature set persisted as an appropriate search 
-             * index from Elasticsearch; the configuration parameters are retrieved 
-             * from the service configuration 
-             */    
-            case Sources.ELASTIC => new ElasticSource(sc).features
-            /* 
-             * Discover outliers from feature set persisted as a file on the (HDFS) 
-             * file system; the configuration parameters are retrieved from the service 
-             * configuration  
-             */    
-            case Sources.FILE => new FileSource(sc).features
-            /*
-             * Discover outliers from feature set persisted as an appropriate table 
-             * from a JDBC database; the configuration parameters are retrieved from 
-             * the service configuration
-             */
-            //case Sources.JDBC => new JdbcSource(sc).connect(req.data)
-             /*
-             * Discover outliers from feature set persisted as an appropriate table 
-             * from a Piwik database; the configuration parameters are retrieved from 
-             * the service configuration
-             */
-            //case Sources.PIWIK => new PiwikSource(sc).connect(req.data)
-            
-          }
 
-          JobCache.add(uid,OutlierStatus.DATASET)
+          JobCache.add(uid,OutlierStatus.STARTED)
           
-          val (k,strategy) = params     
-          findOutliers(uid,dataset,k,strategy)
+          val dataset = new FeatureSource(sc).get(req.data("source"))          
+          findOutliers(uid,dataset,params)
 
         } catch {
           case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)          
         }
- 
 
       }
       
@@ -122,9 +89,13 @@ class KMeansActor extends Actor with SparkActor {
     
   }
   
-  private def findOutliers(uid:String,dataset:RDD[LabeledPoint],k:Int,strategy:String) {
-          
-    val outliers = OutlierDetector.find(dataset,strategy,100,k).toList
+  private def findOutliers(uid:String,dataset:RDD[LabeledPoint],params:(Int,String)) {
+
+    JobCache.add(uid,OutlierStatus.DATASET)
+    
+    /* Find outliers in set of labeled datapoints */
+    val (k,strategy) = params     
+    val outliers = new KMeansDetector().find(dataset,strategy,100,k).toList
           
     /* Put outliers to DetectorCache */
     DetectorCache.add(uid,outliers)

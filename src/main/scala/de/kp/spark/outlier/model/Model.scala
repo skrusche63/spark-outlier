@@ -30,85 +30,14 @@ case class ServiceResponse(
   service:String,task:String,data:Map[String,String],status:String
 )
 
-case class CommerceItem(id:String,price:Float)
-
-case class CommerceTransaction(site:String,user:String,order:String,timestamp:Long,items:List[CommerceItem])
-
-case class StateSequence(site:String,user:String,states:List[String])
+/**
+ * This class specifies a list of customer states that are used to represent
+ * the customers (purchase) behavior within a certain period of time 
+ */
+case class Behavior(site:String,user:String,states:List[String])
 
 case class LabeledPoint(
   label:String,features:Array[Double]
-)
-
-case class OutlierParameters(
-  /*
-   * The algorithm is applicable for outlier prediction and determines
-   * which metric has to be used: the following metric algorithms are
-   * supported:
-   * 
-   * a) missprob : Miss Probability
-   * b) missrate : Miss Rate
-   * c) entreduc : Entropy Reduction
-   * 
-   */
-  algorithm:Option[String],
-  /*
-   * The parameter 'k' is restricted to outlier detection and determines
-   * the number of outliers to be returned by the detector
-   */
-  k:Option[Int],
-  /*
-   * The parameter 'k' is restructed to outlier detection and specifies
-   * the strategy to be used to determine cluster homogenity
-   */
-  strategy:Option[String],
-  /*
-   * The parameter 'threshold' is restricted to outlier prediction and
-   * specifies the threshold for the prediction algorithm; the parameter
-   * takes values between 0..1. The higher the value, the more likely it
-   * is to have an outlier predicted
-   */
-  threshold:Option[Double]
-)
-
-case class OutlierRequest(
-  /* 
-   * Unique identifier to distinguish requests from each other;
-   * the request is responsible for setting appropriate identifiers
-   */
-  uid:String,
-  task:String,
-  /*
-   * The outlier computation method; actually two different approaches
-   * are available: 'detect' means to find outliers by clustering, and
-   * 'predict' means to find outliers from transaction sequences with
-   * markov models
-   */
-  method:Option[String],
-  parameters:Option[OutlierParameters],
-  source:Option[OutlierSource]
-)
-
-case class OutlierResponse(
-  uid:String,
-  message:Option[String],
-  detected:Option[List[(Double,LabeledPoint)]],
-  predicted:Option[List[(String,String,Double,String)]],
-  status:String
-)
-
-case class OutlierSource(
-  /*
-   * The path to a file on the HDFS or local file system
-   * that holds a textual description of a sequence database
-   */
-  path:Option[String]
-)
-
-case class ElasticRequest()
-
-case class FileRequest(
-  path:String
 )
 
 object Algorithms {

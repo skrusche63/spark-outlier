@@ -26,7 +26,11 @@ import org.apache.spark.mllib.linalg.Vectors
 import de.kp.spark.outlier.model.LabeledPoint
 import de.kp.spark.outlier.util.{MathHelper,Optimizer}
 
-object OutlierDetector {
+/**
+ * KMeansDetector is a general purpose outlier detector that 
+ * detects outliers in sets of labeled features
+ */
+class KMeansDetector extends Serializable {
   
   def find(data:RDD[LabeledPoint],strategy:String="entropy",iterations:Int,top:Int):Array[(Double,LabeledPoint)] = {
     

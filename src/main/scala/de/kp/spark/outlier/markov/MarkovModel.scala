@@ -25,11 +25,11 @@ import scala.collection.mutable.HashMap
 
 private case class Pair(ant:String,con:String)
 
-object MarkovModel {
+class MarkovModel(scaleDef:Int,stateDefs:Array[String]) extends Serializable {
 
-  def buildTransProbs(dataset:RDD[StateSequence]):TransitionMatrix = {
-
-    def seqOp(support:HashMap[Pair,Int],seq:StateSequence):HashMap[Pair,Int] = {
+  def buildTransProbs(dataset:RDD[Behavior]):TransitionMatrix = {
+   
+    def seqOp(support:HashMap[Pair,Int],seq:Behavior):HashMap[Pair,Int] = {
           
       val (site,user,states) = (seq.site,seq.user,seq.states)
       /*
@@ -59,12 +59,12 @@ object MarkovModel {
     val pairsupp = dataset.coalesce(1, false).aggregate(HashMap.empty[Pair,Int])(seqOp,combOp)    
 
     /* Setup transition matrix and add pair support*/  	
-    val dim = StateModel.FD_STATE_DEFS.length
+    val dim = stateDefs.length
     
     val matrix = new TransitionMatrix(dim,dim)
-    matrix.setScale(StateModel.FD_SCALE)
+    matrix.setScale(scaleDef)
     
-    matrix.setStates(StateModel.FD_STATE_DEFS, StateModel.FD_STATE_DEFS)    
+    matrix.setStates(stateDefs, stateDefs)    
     for ((pair,support) <- pairsupp) {
       matrix.add(pair.ant, pair.con, support)
     }

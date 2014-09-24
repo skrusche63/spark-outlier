@@ -18,34 +18,10 @@ package de.kp.spark.outlier.markov
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-class TransitionMatrix(numRow:Int,numCol:Int) extends DoubleMatrix(numRow,numCol) {
-    	
-  private var scale = 100
+abstract class StateSpec {
 
-  def setScale(scale:Int) {
-	this.scale = scale
-  }
-
-  def normalize() {	
-    /*
-     * Laplace correction: A row that contains at least 
-     * one zero value is shift by the value of 1
-     */
-    (0 until numRow).foreach(row => {
-	  
-      val transProbs = getRow(row)
-      if (transProbs.min == 0) {		
-        (0 until numCol).foreach(col => table(row)(col) += 1)		        
-      }
-
-    })	
-		
-	/* Normalize transition support */
-	(0 until numRow).foreach(row => {			
-	  val rowSum = getRowSum(row)
-	  (0 until numCol).foreach(col => table(row)(col) = (table(row)(col) * scale) / rowSum)		
-	})
+  def scaleDef(): Int
   
-  }
-
+  def stateDefs(): Array[String]
+  
 }

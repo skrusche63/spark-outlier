@@ -31,6 +31,10 @@ import de.kp.spark.outlier.util.{JobCache,DetectorCache}
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
+/**
+ * The focus of the OutlierMiner is on the model building task,
+ * either for cluster analysis based tasks or markov based states.
+ */
 class OutlierMiner extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
@@ -46,8 +50,12 @@ class OutlierMiner extends Actor with ActorLogging {
       val uid = req.data("uid")
       
       req.task match {
-        
-        case "predict" => {
+        /*
+         * The requests initiates the generation of an outlier model, that
+         * is either represented as the result of a cluster analysis of a
+         * certain feature set or as a transition matrix of customer states. 
+         */
+        case "train" => {
           
           val response = validate(req.data) match {
             
@@ -68,7 +76,11 @@ class OutlierMiner extends Actor with ActorLogging {
           }
          
         }
-       
+        /*
+         * There request retrieves the actual status of a certain
+         * training task, and enables the client application to
+         * determine when a 'prediction' request is invoked best.
+         */
         case "status" => {
           
           val resp = if (JobCache.exists(uid) == false) {           
@@ -159,13 +171,20 @@ class OutlierMiner extends Actor with ActorLogging {
     
   }
 
+  /**
+   * This is a helper method to determine which actor has to be
+   * created to support the requested algorithm; actually KMeans
+   * and Markov based algorithms are supported.
+   */
   private def actor(req:ServiceRequest):ActorRef = {
 
     val algorithm = req.data("algorithm")
     if (algorithm == Algorithms.KMEANS) {      
       context.actorOf(Props(new KMeansActor()))      
+    
     } else {
      context.actorOf(Props(new MarkovActor()))
+    
     }
   
   }

@@ -23,10 +23,10 @@ import org.apache.spark.rdd.RDD
 
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.{Configuration,OutlierPredictor}
+import de.kp.spark.outlier.{Configuration,MarkovDetector}
 import de.kp.spark.outlier.markov.TransitionMatrix
 
-import de.kp.spark.outlier.source.{ElasticSource,FileSource}
+import de.kp.spark.outlier.source.{BehaviorSource}
 import de.kp.spark.outlier.util.{JobCache,PredictorCache}
 
 class MarkovActor extends Actor with SparkActor {
@@ -50,45 +50,8 @@ class MarkovActor extends Actor with SparkActor {
  
         try {
           
-          val source = req.data("source")
-          val dataset = source match {
-            
-            /* 
-             * Discover outliers from feature set persisted as an appropriate search 
-             * index from Elasticsearch; the configuration parameters are retrieved 
-             * from the service configuration 
-             */    
-            case Sources.ELASTIC => new ElasticSource(sc).items
-            /* 
-             * Discover outliers from feature set persisted as a file on the (HDFS) 
-             * file system; the configuration parameters are retrieved from the service 
-             * configuration  
-             */    
-            case Sources.FILE => new FileSource(sc).items
-            /*
-             * Discover outliers from feature set persisted as an appropriate table 
-             * from a JDBC database; the configuration parameters are retrieved from 
-             * the service configuration
-             */
-            //case Sources.JDBC => new JdbcSource(sc).connect(req.data)
-             /*
-             * Discover outliers from feature set persisted as an appropriate table 
-             * from a Piwik database; the configuration parameters are retrieved from 
-             * the service configuration
-             */
-            //case Sources.PIWIK => new PiwikSource(sc).connect(req.data)
-            
-          }
-
-          JobCache.add(uid,OutlierStatus.DATASET)
-
-          val sequences = OutlierPredictor.prepare(dataset)
-          val model = OutlierPredictor.train(sequences)
- 
-          JobCache.add(uid,OutlierStatus.TRAINED)
-         
-          val (algorithm,threshold) = params          
-          findOutliers(uid,sequences,algorithm,threshold,model)
+          val dataset = new BehaviorSource(sc).get(req.data("source"))
+          findOutliers(uid,dataset,params)
 
         } catch {
           case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)          
@@ -128,9 +91,17 @@ class MarkovActor extends Actor with SparkActor {
     
   }
     
-  private def findOutliers(uid:String,sequences:RDD[StateSequence],algorithm:String,threshold:Double,model:TransitionMatrix) {
+  private def findOutliers(uid:String,sequences:RDD[Behavior],params:(String,Double)) {
+
+    JobCache.add(uid,OutlierStatus.DATASET)
+
+    val detector = new MarkovDetector()
+    
+    val model = detector.train(sequences)
+    JobCache.add(uid,OutlierStatus.TRAINED)
          
-    val outliers = OutlierPredictor.predict(sequences,algorithm,threshold,model).collect().toList
+    val (algorithm,threshold) = params          
+    val outliers = detector.detect(sequences,algorithm,threshold,model).collect().toList
           
     /* Put outliers to PredictorCache */
     PredictorCache.add(uid,outliers)

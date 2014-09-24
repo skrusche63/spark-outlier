@@ -42,7 +42,7 @@ class OutlierQuestor extends Actor with ActorLogging {
       
       req.task match {
         
-        case "predict" => {
+        case "get" => {
 
           val algorithm = req.data("algorithm")
           val response = algorithm match {

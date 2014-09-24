@@ -23,6 +23,14 @@ import com.typesafe.config.ConfigFactory
 
 import de.kp.spark.outlier.actor.OutlierMaster
 
+/**
+ * The OutlierService supports two different approaches to outlier discovery; one is based 
+ * on clustering analysis and determines outlier feature sets due to their distance to the
+ * cluster centers. This approach is independent of a certain use case and concentrates on
+ * the extraction and evaluation of (equal-size) feature vectors. The other approach to 
+ * outlier discovery has a strong focus on the customers purchase behavior and detects those
+ * customer that behave different from all other customers.
+ */
 object OutlierService {
 
   def main(args: Array[String]) {

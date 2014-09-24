@@ -1,4 +1,5 @@
 package de.kp.spark.outlier.markov
+
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,7 +19,7 @@ package de.kp.spark.outlier.markov
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-object SequenceMetric {
+class StateMetrics(stateDefs:Array[String]) extends Serializable {
   
   /* 
    * Miss Probability Metric
@@ -39,15 +40,13 @@ object SequenceMetric {
     var F:Double = 0
     var count:Int = 0
     
-    val STATE_DEFS = StateModel.FD_STATE_DEFS
-    
     for (i <- 1 until states.size) {
       
-      val srcIndex = STATE_DEFS.indexOf(states(i-1))
-      val tarIndex = STATE_DEFS.indexOf(states(i))
+      val srcIndex = stateDefs.indexOf(states(i-1))
+      val tarIndex = stateDefs.indexOf(states(i))
 
       /* Sum all probabilities except the target state */
-	  for (j <- 0 until STATE_DEFS.length) {
+	  for (j <- 0 until stateDefs.length) {
 		if (j != tarIndex)
 		  F += model.get(srcIndex,j)
 	  }
@@ -75,14 +74,12 @@ object SequenceMetric {
     var F:Double  = 0
     var count:Int = 0
     
-    val STATE_DEFS = StateModel.FD_STATE_DEFS
-    
     for (i <- 1 until states.size) {
       
-      val srcIndex = STATE_DEFS.indexOf(states(i-1))
-      val tarIndex = STATE_DEFS.indexOf(states(i))
+      val srcIndex = stateDefs.indexOf(states(i-1))
+      val tarIndex = stateDefs.indexOf(states(i))
 
-      val maxIndex = STATE_DEFS.indexOf(model.getRow(srcIndex).max)
+      val maxIndex = stateDefs.indexOf(model.getRow(srcIndex).max)
       
       F = (if (tarIndex == maxIndex) 0 else 1)
 	  count += 1
@@ -110,14 +107,12 @@ object SequenceMetric {
     var F:Double = 0
     var G:Double = 0
     
-    val STATE_DEFS = StateModel.FD_STATE_DEFS
-    
     for (i <- 1 until states.size) {
       
-      val srcIndex = STATE_DEFS.indexOf(states(i-1))
-      val tarIndex = STATE_DEFS.indexOf(states(i))
+      val srcIndex = stateDefs.indexOf(states(i-1))
+      val tarIndex = stateDefs.indexOf(states(i))
 
-      for (j <- 0 until STATE_DEFS.length) {
+      for (j <- 0 until stateDefs.length) {
         
         val prob = model.get(srcIndex,j)
         val entropy = -prob * Math.log(prob)

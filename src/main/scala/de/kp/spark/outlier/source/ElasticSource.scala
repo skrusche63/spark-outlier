@@ -21,7 +21,6 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import org.apache.hadoop.conf.{Configuration => HConf}
 import org.apache.hadoop.io.{ArrayWritable,MapWritable,NullWritable,Text}
 
 import org.elasticsearch.hadoop.mr.EsInputFormat
