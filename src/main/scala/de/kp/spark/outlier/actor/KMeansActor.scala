@@ -26,7 +26,7 @@ import de.kp.spark.outlier.{Configuration,KMeansDetector}
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.source.FeatureSource
-import de.kp.spark.outlier.util.{JobCache,DetectorCache}
+import de.kp.spark.outlier.util.{JobCache,FeatureCache}
 
 class KMeansActor extends Actor with SparkActor {
   
@@ -97,8 +97,8 @@ class KMeansActor extends Actor with SparkActor {
     val (k,strategy) = params     
     val outliers = new KMeansDetector().find(dataset,strategy,100,k).toList
           
-    /* Put outliers to DetectorCache */
-    DetectorCache.add(uid,outliers)
+    /* Put outliers to FeatureCache */
+    FeatureCache.add(uid,outliers)
           
     /* Update JobCache */
     JobCache.add(uid,OutlierStatus.FINISHED)

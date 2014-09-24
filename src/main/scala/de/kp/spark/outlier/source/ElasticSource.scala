@@ -31,7 +31,7 @@ import scala.collection.mutable.ArrayBuffer
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model.LabeledPoint
-import de.kp.spark.outlier.spec.{DetectorSpec,PredictorSpec}
+import de.kp.spark.outlier.spec.{FeatureSpec,BehaviorSpec}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -47,7 +47,7 @@ class ElasticSource(@transient sc:SparkContext) extends Serializable {
    */
   def features():RDD[LabeledPoint] = {
     
-    val spec = sc.broadcast(DetectorSpec.get)
+    val spec = sc.broadcast(FeatureSpec.get)
     
     /* Connect to Elasticsearch */
     val source = sc.newAPIHadoopRDD(conf, classOf[EsInputFormat[Text, MapWritable]], classOf[Text], classOf[MapWritable])
@@ -75,7 +75,7 @@ class ElasticSource(@transient sc:SparkContext) extends Serializable {
    */
   def items():RDD[(String,String,String,Long,String,Float)] = {
     
-    val spec = sc.broadcast(PredictorSpec.get)
+    val spec = sc.broadcast(BehaviorSpec.get)
     
     /* Connect to Elasticsearch */
     val source = sc.newAPIHadoopRDD(conf, classOf[EsInputFormat[Text, MapWritable]], classOf[Text], classOf[MapWritable])

@@ -21,9 +21,9 @@ package de.kp.spark.outlier.spec
 import scala.xml._
 import scala.collection.mutable.HashMap
 
-object PredictorSpec {
+object BehaviorSpec {
   
-  val path = "predictorspec.xml"
+  val path = "behaviorspec.xml"
   val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
   private val fields = HashMap.empty[String,(String,String)]

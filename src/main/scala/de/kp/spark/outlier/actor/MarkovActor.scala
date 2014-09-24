@@ -27,7 +27,7 @@ import de.kp.spark.outlier.{Configuration,MarkovDetector}
 import de.kp.spark.outlier.markov.TransitionMatrix
 
 import de.kp.spark.outlier.source.{BehaviorSource}
-import de.kp.spark.outlier.util.{JobCache,PredictorCache}
+import de.kp.spark.outlier.util.{JobCache,BehaviorCache}
 
 class MarkovActor extends Actor with SparkActor {
   
@@ -103,8 +103,8 @@ class MarkovActor extends Actor with SparkActor {
     val (algorithm,threshold) = params          
     val outliers = detector.detect(sequences,algorithm,threshold,model).collect().toList
           
-    /* Put outliers to PredictorCache */
-    PredictorCache.add(uid,outliers)
+    /* Put outliers to BehaviorCache */
+    BehaviorCache.add(uid,outliers)
           
     /* Update JobCache */
     JobCache.add(uid,OutlierStatus.FINISHED)

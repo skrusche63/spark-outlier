@@ -23,15 +23,15 @@ import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 import de.kp.spark.outlier.{Detection,Feature,Prediction}
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.util.{DetectorCache,PredictorCache}
+import de.kp.spark.outlier.util.{FeatureCache,BehaviorCache}
 
-import de.kp.spark.outlier.spec.DetectorSpec
+import de.kp.spark.outlier.spec.FeatureSpec
 import scala.collection.mutable.ArrayBuffer
 
 class OutlierQuestor extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
-  val spec = DetectorSpec.get
+  val spec = FeatureSpec.get
 
   def receive = {
     
@@ -49,13 +49,13 @@ class OutlierQuestor extends Actor with ActorLogging {
             
             case Algorithms.KMEANS => {
 
-              if (DetectorCache.exists(uid) == false) {    
+              if (FeatureCache.exists(uid) == false) {    
                 failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
               } else {         
                 
                 /* Retrieve and serialize detected outliers */
-                val outliers = DetectorCache.outliers(uid).map(outlier => {
+                val outliers = FeatureCache.outliers(uid).map(outlier => {
                   
                   val (distance,point) = outlier
                   val (label,values) = (point.label,point.features)
@@ -83,13 +83,13 @@ class OutlierQuestor extends Actor with ActorLogging {
             
             case Algorithms.MARKOV => {
 
-              if (PredictorCache.exists(uid) == false) {   
+              if (BehaviorCache.exists(uid) == false) {   
                 failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
               } else {       
                 
                 /* Retrieve and serialize predicted outliers */
-                val outliers = PredictorCache.outliers(uid).map(o => Prediction(o._1,o._2,o._3,o._4,o._5).toJSON).mkString(",")
+                val outliers = BehaviorCache.outliers(uid).map(o => Prediction(o._1,o._2,o._3,o._4,o._5).toJSON).mkString(",")
 
                 val data = Map("uid" -> uid, "outliers" -> outliers)            
                 new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)

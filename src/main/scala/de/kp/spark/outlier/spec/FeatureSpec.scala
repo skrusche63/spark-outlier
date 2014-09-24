@@ -21,9 +21,9 @@ package de.kp.spark.outlier.spec
 import scala.xml._
 import scala.collection.mutable.ArrayBuffer
 
-object DetectorSpec extends Serializable {
+object FeatureSpec extends Serializable {
   
-  val path = "detectorspec.xml"
+  val path = "featurespec.xml"
   val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
   private val fields = ArrayBuffer.empty[String]

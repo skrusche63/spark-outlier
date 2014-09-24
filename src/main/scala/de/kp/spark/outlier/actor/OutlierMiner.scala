@@ -26,7 +26,7 @@ import akka.util.Timeout
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.util.{JobCache,DetectorCache}
+import de.kp.spark.outlier.util.JobCache
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
