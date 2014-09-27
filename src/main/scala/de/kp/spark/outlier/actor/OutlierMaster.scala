@@ -55,7 +55,7 @@ class OutlierMaster extends Actor with ActorLogging {
 	  	    
 	  val origin = sender
 
-	  val deser = OutlierModel.deserializeRequest(req)
+	  val deser = Serializer.deserializeRequest(req)
 	  val response = deser.task match {
         
         case "train"  => ask(miner,deser).mapTo[ServiceResponse]
@@ -73,7 +73,7 @@ class OutlierMaster extends Actor with ActorLogging {
       
       }
       response.onSuccess {
-        case result => origin ! OutlierModel.serializeResponse(result)
+        case result => origin ! Serializer.serializeResponse(result)
       }
       response.onFailure {
         case result => origin ! failure(deser,Messages.GENERAL_ERROR(deser.data("uid")))	      

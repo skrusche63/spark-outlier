@@ -35,17 +35,15 @@ import de.kp.spark.outlier.spec.{FeatureSpec,BehaviorSpec}
 
 import scala.collection.mutable.ArrayBuffer
 
-// TODO: Check whether a single conf for features and items is sufficient
-
 class ElasticSource(@transient sc:SparkContext) extends Serializable {
           
   /* Retrieve data from Elasticsearch */    
   val conf = Configuration.elastic                          
  
-  /**
-   * Load labeled features from an Elasticsearch cluster
-   */
-  def features():RDD[LabeledPoint] = {
+  def features(params:Map[String,Any]):RDD[LabeledPoint] = {
+    
+    val query = params("query").asInstanceOf[String]
+    val resource = params("resource").asInstanceOf[String]
     
     val spec = sc.broadcast(FeatureSpec.get)
     
@@ -69,11 +67,8 @@ class ElasticSource(@transient sc:SparkContext) extends Serializable {
     })
     
   }
-  /**
-   * Load ecommerce items that refer to a certain site (tenant), user
-   * and transaction or order
-   */
-  def items():RDD[(String,String,String,Long,String,Float)] = {
+
+  def items(params:Map[String,Any]):RDD[(String,String,String,Long,String,Float)] = {
     
     val spec = sc.broadcast(BehaviorSpec.get)
     

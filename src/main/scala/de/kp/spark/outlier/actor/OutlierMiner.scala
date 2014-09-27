@@ -26,7 +26,7 @@ import akka.util.Timeout
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.util.JobCache
+import de.kp.spark.outlier.redis.RedisCache
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -65,13 +65,13 @@ class OutlierMiner extends Actor with ActorLogging {
           }
 
           response.onSuccess {
-            case result => origin ! OutlierModel.serializeResponse(result)
+            case result => origin ! Serializer.serializeResponse(result)
           }
 
           response.onFailure {
             case throwable => {             
               val resp = failure(req,throwable.toString)
-              origin ! OutlierModel.serializeResponse(resp)	                  
+              origin ! Serializer.serializeResponse(resp)	                  
            }	  
           }
          
@@ -83,7 +83,7 @@ class OutlierMiner extends Actor with ActorLogging {
          */
         case "status" => {
           
-          val resp = if (JobCache.exists(uid) == false) {           
+          val resp = if (RedisCache.taskExists(uid) == false) {           
             failure(req,Messages.TASK_DOES_NOT_EXIST(uid))
             
           } else {            
@@ -91,14 +91,14 @@ class OutlierMiner extends Actor with ActorLogging {
             
           }
            
-          origin ! OutlierModel.serializeResponse(resp)
+          origin ! Serializer.serializeResponse(resp)
             
         }
         
         case _ => {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
-          origin ! OutlierModel.serializeResponse(failure(req,msg))
+          origin ! Serializer.serializeResponse(failure(req,msg))
           
         }
         
@@ -124,7 +124,7 @@ class OutlierMiner extends Actor with ActorLogging {
     val uid = req.data("uid")
     val data = Map("uid" -> uid)
                 
-    new ServiceResponse(req.service,req.task,data,JobCache.status(uid))	
+    new ServiceResponse(req.service,req.task,data,RedisCache.status(uid))	
 
   }
 
@@ -132,7 +132,7 @@ class OutlierMiner extends Actor with ActorLogging {
 
     val uid = params("uid")
  
-    if (JobCache.exists(uid)) {            
+    if (RedisCache.taskExists(uid)) {            
       val message = Messages.TASK_ALREADY_STARTED(uid)
       return Some(message)
     

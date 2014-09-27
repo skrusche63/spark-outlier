@@ -30,8 +30,9 @@ import de.kp.spark.outlier.model.LabeledPoint
  */
 class FeatureSource(@transient sc:SparkContext) {
 
-  def get(source:String):RDD[LabeledPoint] = {
+  def get(data:Map[String,String]):RDD[LabeledPoint] = {
 
+    val source = data("source")
     source match {
       
       /* 
@@ -39,13 +40,13 @@ class FeatureSource(@transient sc:SparkContext) {
        * index from Elasticsearch; the configuration parameters are retrieved 
        * from the service configuration 
        */    
-      case Sources.ELASTIC => new ElasticSource(sc).features
+      case Sources.ELASTIC => new ElasticSource(sc).features(data)
       /* 
        * Discover outliers from feature set persisted as a file on the (HDFS) 
        * file system; the configuration parameters are retrieved from the service 
        * configuration  
        */    
-      case Sources.FILE => new FileSource(sc).features
+      case Sources.FILE => new FileSource(sc).features(data)
       /*
        * Discover outliers from feature set persisted as an appropriate table 
        * from a JDBC database; the configuration parameters are retrieved from 

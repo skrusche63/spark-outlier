@@ -87,6 +87,17 @@ object Configuration {
     )
     
   }
+  
+  def redis():(String,String) = {
+  
+    val cfg = config.getConfig("redis")
+    
+    val host = cfg.getString("host")
+    val port = cfg.getString("port")
+    
+    (host,port)
+    
+  }
 
   def router():(Int,Int,Int) = {
   

@@ -26,7 +26,7 @@ import de.kp.spark.outlier.{Configuration,KMeansDetector}
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.source.FeatureSource
-import de.kp.spark.outlier.util.{JobCache,FeatureCache}
+import de.kp.spark.outlier.redis.RedisCache
 
 class KMeansActor extends Actor with SparkActor {
   
@@ -37,7 +37,9 @@ class KMeansActor extends Actor with SparkActor {
 
     case req:ServiceRequest => {
 
-      val uid = req.data("uid")     
+      val uid = req.data("uid")   
+      val task = req.task
+      
       val params = properties(req)
 
       /* Send response to originator of request */
@@ -47,13 +49,13 @@ class KMeansActor extends Actor with SparkActor {
  
         try {
 
-          JobCache.add(uid,OutlierStatus.STARTED)
+          RedisCache.addStatus(uid,task,OutlierStatus.STARTED)
           
-          val dataset = new FeatureSource(sc).get(req.data("source"))          
-          findOutliers(uid,dataset,params)
+          val dataset = new FeatureSource(sc).get(req.data)          
+          findOutliers(uid,task,dataset,params)
 
         } catch {
-          case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)          
+          case e:Exception => RedisCache.addStatus(uid,task,OutlierStatus.FAILURE)          
         }
 
       }
@@ -89,19 +91,19 @@ class KMeansActor extends Actor with SparkActor {
     
   }
   
-  private def findOutliers(uid:String,dataset:RDD[LabeledPoint],params:(Int,String)) {
+  private def findOutliers(uid:String,task:String,dataset:RDD[LabeledPoint],params:(Int,String)) {
 
-    JobCache.add(uid,OutlierStatus.DATASET)
+    RedisCache.addStatus(uid,task,OutlierStatus.DATASET)
     
     /* Find outliers in set of labeled datapoints */
     val (k,strategy) = params     
     val outliers = new KMeansDetector().find(dataset,strategy,100,k).toList
           
-    /* Put outliers to FeatureCache */
-    FeatureCache.add(uid,outliers)
+    /* Put outliers to cache */
+    RedisCache.addFOutliers(uid,new FOutliers(outliers))
           
-    /* Update JobCache */
-    JobCache.add(uid,OutlierStatus.FINISHED)
+    /* Update cache */
+    RedisCache.addStatus(uid,task,OutlierStatus.FINISHED)
     
   }
   

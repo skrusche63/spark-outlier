@@ -30,8 +30,28 @@ case class ServiceResponse(
   service:String,task:String,data:Map[String,String],status:String
 )
 
+/*
+ * Service requests are mapped onto job descriptions and are stored
+ * in a Redis instance
+ */
+case class JobDesc(
+  service:String,task:String,status:String
+)
+
+case class FField(field:String,value:Double)
+
+case class FDetection(
+  distance:Double,label:String,features:List[FField])
+
+case class FDetections(items:List[FDetection])
+  
+case class BDetection(
+  site:String,user:String,states:List[String],metric:Double,flag:String)
+
+case class BDetections(items:List[BDetection])
+  
 /**
- * This class specifies a list of customer states that are used to represent
+ * This class specifies a list of user states that are used to represent
  * the customers (purchase) behavior within a certain period of time 
  */
 case class Behavior(site:String,user:String,states:List[String])
@@ -39,6 +59,10 @@ case class Behavior(site:String,user:String,states:List[String])
 case class LabeledPoint(
   label:String,features:Array[Double]
 )
+
+case class BOutliers(items:List[(String,String,List[String],Double,String)])
+
+case class FOutliers(items:List[(Double,LabeledPoint)])
 
 object Algorithms {
   
@@ -55,9 +79,31 @@ object Sources {
   val PIWIK:String   = "PIWIK"    
 }
 
-object OutlierModel {
+object Serializer {
     
   implicit val formats = Serialization.formats(NoTypeHints)
+  /*
+   * Support for serialization and deserialization of detections
+   */
+  def serializeBDetections(detections:BDetections):String = write(detections)
+  def serializeFDetections(detections:FDetections):String = write(detections)
+
+  def deserializeBDetections(detections:String):BDetections = read[BDetections](detections)
+  def deserializeFDetections(detections:String):FDetections = read[FDetections](detections)
+  /*
+   * Support for serialization and deserialization of job descriptions
+   */
+  def serializeJob(job:JobDesc):String = write(job)
+
+  def deserializeJob(job:String):JobDesc = read[JobDesc](job)
+  /*
+   * Support for serialization and deserialization of outliers
+   */  
+  def serializeBOutliers(outliers:BOutliers):String = write(outliers)
+  def serializeFOutliers(outliers:FOutliers):String = write(outliers)
+  
+  def deserializeBOutliers(outliers:String):BOutliers = read[BOutliers](outliers)
+  def deserializeFOutliers(outliers:String):FOutliers = read[FOutliers](outliers)
 
   def serializeResponse(response:ServiceResponse):String = write(response)
   

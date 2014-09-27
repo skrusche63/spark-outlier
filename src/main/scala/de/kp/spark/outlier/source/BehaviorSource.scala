@@ -31,21 +31,22 @@ private case class Sequence(site:String,user:String,orders:List[(Long,List[Item]
 
 class BehaviorSource(@transient sc:SparkContext) {
 
-  def get(source:String):RDD[Behavior] = {
+  def get(data:Map[String,String]):RDD[Behavior] = {
 
+    val source = data("source")
     val rawset = source match {
       /* 
        * Discover outliers from feature set persisted as an appropriate search 
        * index from Elasticsearch; the configuration parameters are retrieved 
        * from the service configuration 
        */    
-      case Sources.ELASTIC => new ElasticSource(sc).items
+      case Sources.ELASTIC => new ElasticSource(sc).items(data)
       /* 
        * Discover outliers from feature set persisted as a file on the (HDFS) 
        * file system; the configuration parameters are retrieved from the service 
        * configuration  
        */    
-       case Sources.FILE => new FileSource(sc).items
+       case Sources.FILE => new FileSource(sc).items(data)
        /*
         * Discover outliers from feature set persisted as an appropriate table 
         * from a JDBC database; the configuration parameters are retrieved from 

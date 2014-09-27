@@ -31,7 +31,7 @@ class FileSource(@transient sc:SparkContext) extends Serializable {
   /**
    * Load labeled features from the file system
    */
-  def features():RDD[LabeledPoint] = {
+  def features(params:Map[String,Any]):RDD[LabeledPoint] = {
     
     sc.textFile(fFeatures).map(valu => {
       
@@ -45,7 +45,7 @@ class FileSource(@transient sc:SparkContext) extends Serializable {
   /**
    * Load ecommerce items from the file system
    */
-  def items():RDD[(String,String,String,Long,String,Float)] = {
+  def items(params:Map[String,Any]):RDD[(String,String,String,Long,String,Float)] = {
 
     sc.textFile(fItems).map(valu => {
       

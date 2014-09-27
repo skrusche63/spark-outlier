@@ -27,7 +27,7 @@ import de.kp.spark.outlier.{Configuration,MarkovDetector}
 import de.kp.spark.outlier.markov.TransitionMatrix
 
 import de.kp.spark.outlier.source.{BehaviorSource}
-import de.kp.spark.outlier.util.{JobCache,BehaviorCache}
+import de.kp.spark.outlier.redis.RedisCache
 
 class MarkovActor extends Actor with SparkActor {
   
@@ -39,6 +39,8 @@ class MarkovActor extends Actor with SparkActor {
     case req:ServiceRequest => {
 
       val uid = req.data("uid")     
+      val task = req.task
+      
       val params = properties(req)
 
       /* Send response to originator of request */
@@ -46,15 +48,15 @@ class MarkovActor extends Actor with SparkActor {
 
       if (params != null) {
         /* Register status */
-        JobCache.add(uid,OutlierStatus.STARTED)
+        RedisCache.addStatus(uid,task,OutlierStatus.STARTED)
  
         try {
           
-          val dataset = new BehaviorSource(sc).get(req.data("source"))
-          findOutliers(uid,dataset,params)
+          val dataset = new BehaviorSource(sc).get(req.data)
+          findOutliers(uid,task,dataset,params)
 
         } catch {
-          case e:Exception => JobCache.add(uid,OutlierStatus.FAILURE)          
+          case e:Exception => RedisCache.addStatus(uid,task,OutlierStatus.FAILURE)          
         }
  
 
@@ -91,23 +93,23 @@ class MarkovActor extends Actor with SparkActor {
     
   }
     
-  private def findOutliers(uid:String,sequences:RDD[Behavior],params:(String,Double)) {
+  private def findOutliers(uid:String,task:String,sequences:RDD[Behavior],params:(String,Double)) {
 
-    JobCache.add(uid,OutlierStatus.DATASET)
+    RedisCache.addStatus(uid,task,OutlierStatus.DATASET)
 
     val detector = new MarkovDetector()
     
     val model = detector.train(sequences)
-    JobCache.add(uid,OutlierStatus.TRAINED)
+    RedisCache.addStatus(uid,task,OutlierStatus.TRAINED)
          
     val (algorithm,threshold) = params          
     val outliers = detector.detect(sequences,algorithm,threshold,model).collect().toList
           
-    /* Put outliers to BehaviorCache */
-    BehaviorCache.add(uid,outliers)
+    /* Put outliers to cache */
+    RedisCache.addBOutliers(uid,new BOutliers(outliers))
           
-    /* Update JobCache */
-    JobCache.add(uid,OutlierStatus.FINISHED)
+    /* Update cache */
+    RedisCache.addStatus(uid,task,OutlierStatus.FINISHED)
     
   }
   
