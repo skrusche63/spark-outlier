@@ -25,9 +25,9 @@ import scala.collection.mutable.HashMap
 
 private case class Pair(ant:String,con:String)
 
-class MarkovModel(scaleDef:Int,stateDefs:Array[String]) extends Serializable {
+class MarkovBuilder(scaleDef:Int,stateDefs:Array[String]) extends Serializable {
 
-  def buildTransProbs(dataset:RDD[Behavior]):TransitionMatrix = {
+  def build(dataset:RDD[Behavior]):TransitionMatrix = {
    
     def seqOp(support:HashMap[Pair,Int],seq:Behavior):HashMap[Pair,Int] = {
           

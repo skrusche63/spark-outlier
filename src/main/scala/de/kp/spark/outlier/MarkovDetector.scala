@@ -21,7 +21,7 @@ package de.kp.spark.outlier
 import org.apache.spark.rdd.RDD
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.markov.{MarkovModel,StateMetrics,TransitionMatrix}
+import de.kp.spark.outlier.markov.{MarkovBuilder,StateMetrics,TransitionMatrix}
 
 import de.kp.spark.outlier.source.BehaviorModel
 
@@ -59,7 +59,7 @@ class MarkovDetector() extends Serializable {
   }
 
   def train(sequences:RDD[Behavior]):TransitionMatrix = {
-    new MarkovModel(behavior.scaleDef,behavior.stateDefs).buildTransProbs(sequences)
+    new MarkovBuilder(behavior.scaleDef,behavior.stateDefs).build(sequences)
   }
   
 }
