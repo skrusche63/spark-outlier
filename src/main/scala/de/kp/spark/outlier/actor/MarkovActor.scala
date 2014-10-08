@@ -18,21 +18,20 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import akka.actor.{Actor,ActorLogging,ActorRef,Props}
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+
+import akka.actor.{Actor,ActorLogging}
 
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.{Configuration,MarkovDetector}
+import de.kp.spark.outlier.MarkovDetector
 import de.kp.spark.outlier.markov.TransitionMatrix
 
 import de.kp.spark.outlier.source.{BehaviorSource}
 import de.kp.spark.outlier.redis.RedisCache
 
-class MarkovActor extends Actor with SparkActor {
-  
-  /* Create Spark context */
-  private val sc = createCtxLocal("MarkovActor",Configuration.spark)      
+class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLogging {
 
   def receive = {
 
@@ -62,14 +61,13 @@ class MarkovActor extends Actor with SparkActor {
 
       }
       
-      sc.stop
       context.stop(self)
           
     }
     
     case _ => {
       
-      sc.stop
+      log.error("Unkonw request.")
       context.stop(self)
       
     }

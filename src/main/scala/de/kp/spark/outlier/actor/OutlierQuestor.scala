@@ -82,14 +82,17 @@ class OutlierQuestor extends Actor with ActorLogging {
           }
            
           origin ! Serializer.serializeResponse(response)
+          context.stop(self)
            
         }
         
         case _ => {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
+          
           origin ! Serializer.serializeResponse(failure(req,msg))
-           
+          context.stop(self)
+          
         }
         
       }
@@ -100,8 +103,15 @@ class OutlierQuestor extends Actor with ActorLogging {
  
   private def failure(req:ServiceRequest,message:String):ServiceResponse = {
     
-    val data = Map("uid" -> req.data("uid"), "message" -> message)
-    new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
+    if (req == null) {
+      val data = Map("message" -> message)
+      new ServiceResponse("","",data,OutlierStatus.FAILURE)	
+      
+    } else {
+      val data = Map("uid" -> req.data("uid"), "message" -> message)
+      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
+    
+    }
     
   }
  

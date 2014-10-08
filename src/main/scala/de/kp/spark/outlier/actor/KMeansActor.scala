@@ -18,20 +18,18 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import akka.actor.{Actor,ActorLogging,ActorRef,Props}
-
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.{Configuration,KMeansDetector}
+import akka.actor.{Actor,ActorLogging,ActorRef,Props}
+
+import de.kp.spark.outlier.KMeansDetector
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.source.FeatureSource
 import de.kp.spark.outlier.redis.RedisCache
 
-class KMeansActor extends Actor with SparkActor {
-  
-  /* Create Spark context */
-  private val sc = createCtxLocal("KMeansActor",Configuration.spark)      
+class KMeansActor(@transient val sc:SparkContext) extends Actor with ActorLogging {
 
   def receive = {
 
@@ -60,14 +58,13 @@ class KMeansActor extends Actor with SparkActor {
 
       }
       
-      sc.stop
       context.stop(self)
           
     }
     
     case _ => {
       
-      sc.stop
+      log.error("unknown request.")
       context.stop(self)
       
     }
