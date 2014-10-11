@@ -17,6 +17,7 @@ package de.kp.spark.outlier.actor
 * 
 * If not, see <http://www.gnu.org/licenses/>.
 */
+import org.apache.spark.SparkContext
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
@@ -31,10 +32,8 @@ import de.kp.spark.outlier.model._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 
-class OutlierMaster extends Actor with ActorLogging with SparkActor {
+class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogging {
   
-  /* Create Spark context */
-  private val sc = createCtxLocal("OutlierContext",Configuration.spark)      
   val (duration,retries,time) = Configuration.actor   
 
   override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries=retries,withinTimeRange = DurationInt(duration).minutes) {
@@ -51,12 +50,12 @@ class OutlierMaster extends Actor with ActorLogging with SparkActor {
 	  val origin = sender
 
 	  val deser = Serializer.deserializeRequest(req)
-	  val response = deser.task match {
+	  val response = deser.task.split(":")(0) match {
+        
+        case "get" => ask(actor("questor"),deser).mapTo[ServiceResponse]
         
         case "train"  => ask(actor("miner"),deser).mapTo[ServiceResponse]
         case "status" => ask(actor("miner"),deser).mapTo[ServiceResponse]
-        
-        case "predict" => ask(actor("questor"),deser).mapTo[ServiceResponse]
        
         case _ => {
 

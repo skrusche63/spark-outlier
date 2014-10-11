@@ -47,12 +47,14 @@ object OutlierService {
 
 }
 
-class OutlierService(conf:String, name:String) {
+class OutlierService(conf:String, name:String) extends SparkService {
 
   val system = ActorSystem(name, ConfigFactory.load(conf))
   sys.addShutdownHook(system.shutdown)
-
-  val master = system.actorOf(Props[OutlierMaster], name="outlier-master")
+  
+  /* Create Spark context */
+  private val sc = createCtxLocal("OutlierContext",Configuration.spark)      
+  val master = system.actorOf(Props(new OutlierMaster(sc)), name="outlier-master")
 
   def shutdown = system.shutdown()
   
