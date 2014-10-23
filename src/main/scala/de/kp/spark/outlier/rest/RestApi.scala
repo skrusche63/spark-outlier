@@ -85,7 +85,14 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
 	      ctx => doStatus(ctx)
 	    }
 	  }
-    }  
+    }  ~ 
+    path("track" / Segment) {subject => 
+	  post {
+	    respondWithStatus(OK) {
+	      ctx => doTrack(ctx,subject)
+	    }
+	  }
+    }     
   
   }
 
@@ -94,6 +101,20 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
   private def doTrain[T](ctx:RequestContext) = doRequest(ctx,"outlier","train")
 
   private def doStatus[T](ctx:RequestContext) = doRequest(ctx,"outlier","status")
+
+  private def doTrack[T](ctx:RequestContext,subject:String) = {
+	    
+    subject match {
+
+      case "features" => doRequest(ctx,"outlier","track:features")
+      
+	  case "sequences" => doRequest(ctx,"outlier","track:sequences")
+	      
+	  case _ => {}
+	  
+    }
+    
+  }
   
   private def doRequest[T](ctx:RequestContext,service:String,task:String="train") = {
      
