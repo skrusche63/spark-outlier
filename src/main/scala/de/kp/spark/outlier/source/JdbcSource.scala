@@ -21,40 +21,38 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.Configuration
-import de.kp.spark.outlier.io.ElasticReader
+import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.model.LabeledPoint
+import de.kp.spark.outlier.io.JdbcReader
 import de.kp.spark.outlier.spec.{FeatureSpec,BehaviorSpec}
 
 import scala.collection.mutable.ArrayBuffer
 
-class ElasticSource(@transient sc:SparkContext) extends Serializable {
-          
-  /* Retrieve data from Elasticsearch */    
-  val conf = Configuration.elastic                          
- 
+class JdbcSource(@transient sc:SparkContext) extends Serializable {
+
   def features(params:Map[String,Any]):RDD[LabeledPoint] = {
     
-    val index = params("source.index").asInstanceOf[String]
-    val mapping = params("source.type").asInstanceOf[String]
+    val uid = params("uid").asInstanceOf[String]         
+    val fields = FeatureSpec.get(uid)
+    /*
+     * Convert field specification into broadcast variable
+     */
+    val spec = sc.broadcast(fields)
     
+    /* Retrieve site and query from params */
+    val site = params("site").asInstanceOf[Int]
     val query = params("query").asInstanceOf[String]
     
-    val uid = params("uid").asInstanceOf[String]
-    val spec = sc.broadcast(FeatureSpec.get(uid))
-    
-    /* Connect to Elasticsearch */
-    val rawset = new ElasticReader(sc,index,mapping,query).read
+    val rawset = new JdbcReader(sc,site,query).read(fields)
     rawset.map(data => {
       
       val fields = spec.value
 
-      val label = data(fields.head)
+      val label = data(fields.head).asInstanceOf[String]
       val features = ArrayBuffer.empty[Double]
       
       for (field <- fields.tail) {
-        features += data(field).toDouble
+        features += data(field).asInstanceOf[Double]
       }
       
       new LabeledPoint(label,features.toArray)
@@ -62,34 +60,38 @@ class ElasticSource(@transient sc:SparkContext) extends Serializable {
     })
     
   }
-
+  
   def items(params:Map[String,Any]):RDD[(String,String,String,Long,String,Float)] = {
     
-    val index = params("source.index").asInstanceOf[String]
-    val mapping = params("source.type").asInstanceOf[String]
+    val uid = params("uid").asInstanceOf[String]    
+     
+    val fieldspec = BehaviorSpec.get(uid)
+    val fields = fieldspec.map(kv => kv._2._1).toList    
+    /*
+     * Convert field specification into broadcast variable
+     */
+    val spec = sc.broadcast(fieldspec)
     
+    /* Retrieve site and query from params */
+    val site = params("site").asInstanceOf[Int]
     val query = params("query").asInstanceOf[String]
-    
-    val uid = params("uid").asInstanceOf[String]
-    val spec = sc.broadcast(BehaviorSpec.get(uid))
-    
-    /* Connect to Elasticsearch */
-    val rawset = new ElasticReader(sc,index,mapping,query).read
+
+    val rawset = new JdbcReader(sc,site,query).read(fields)
     rawset.map(data => {
       
-      val site = data(spec.value("site")._1)
-      val timestamp = data(spec.value("timestamp")._1).toLong
+      val site = data(spec.value("site")._1).asInstanceOf[String]
+      val timestamp = data(spec.value("timestamp")._1).asInstanceOf[Long]
 
-      val user = data(spec.value("user")._1)      
-      val group = data(spec.value("group")._1)
-
-      val item  = data(spec.value("item")._1)
-      val price  = data(spec.value("price")._1).toFloat
+      val user = data(spec.value("user")._1).asInstanceOf[String] 
+      val group = data(spec.value("group")._1).asInstanceOf[String]
+      
+      val item  = data(spec.value("item")._1).asInstanceOf[String]
+      val price  = data(spec.value("price")._1).asInstanceOf[Float]
       
       (site,user,group,timestamp,item,price)
       
     })
-    
+
   }
 
 }

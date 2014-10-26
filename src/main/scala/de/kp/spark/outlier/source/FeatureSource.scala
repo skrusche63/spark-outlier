@@ -52,17 +52,12 @@ class FeatureSource(@transient sc:SparkContext) {
        * from a JDBC database; the configuration parameters are retrieved from 
        * the service configuration
        */
-      //case Sources.JDBC => new JdbcSource(sc).connect(req.data)
-      /*
-       * Discover outliers from feature set persisted as an appropriate table 
-       * from a Piwik database; the configuration parameters are retrieved from 
-       * the service configuration
-       */
-      //case Sources.PIWIK => new PiwikSource(sc).connect(req.data)
+      case Sources.JDBC => new JdbcSource(sc).features(data)
       
       case _ => null
       
     }
 
   }
+
 }

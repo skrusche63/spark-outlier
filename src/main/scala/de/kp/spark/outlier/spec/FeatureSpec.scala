@@ -18,26 +18,39 @@ package de.kp.spark.outlier.spec
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
+import de.kp.spark.outlier.redis.RedisCache
+
 import scala.xml._
 import scala.collection.mutable.ArrayBuffer
 
 object FeatureSpec extends Serializable {
   
   val path = "featurespec.xml"
-  val root:Elem = XML.load(getClass.getClassLoader.getResource(path))  
 
-  private val fields = ArrayBuffer.empty[String]
-  
-  load()
-  
-  private def load() {
+  def get(uid:String):List[String] = {
 
-    for (field <- root \ "field") {
-      fields += field.text 
+    val fields = ArrayBuffer.empty[String]
+  
+    try {
+          
+      val root = if (RedisCache.metaExists(uid)) {      
+        XML.load(RedisCache.meta(uid))
+    
+      } else {
+        XML.load(getClass.getClassLoader.getResource(path))  
+      
+     }
+   
+     for (field <- root \ "field") {
+       fields += field.text 
+     }
+      
+    } catch {
+      case e:Exception => {}
     }
-
+    
+    fields.toList
+    
   }
-
-  def get = fields.toList
 
 }

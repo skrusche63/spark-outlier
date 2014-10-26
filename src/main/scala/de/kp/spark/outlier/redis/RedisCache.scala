@@ -31,8 +31,6 @@ object RedisCache {
   val client  = RedisClient()
   val service = "outlier"
 
-  val spec = FeatureSpec.get
-
   def addFOutliers(uid:String, outliers:FOutliers) {
    
     val now = new Date()
@@ -83,6 +81,13 @@ object RedisCache {
     
   }
   
+  def metaExists(uid:String):Boolean = {
+
+    val k = "meta:" + uid
+    client.exists(k)
+    
+  }
+  
   def taskExists(uid:String):Boolean = {
 
     val k = "job:" + service + ":" + uid
@@ -91,6 +96,8 @@ object RedisCache {
   }
   
   def features(uid:String):String = {
+
+    val spec = FeatureSpec.get(uid)
 
     val k = "feature:" + service + ":" + uid
     val features = client.zrange(k, 0, -1)
@@ -148,6 +155,22 @@ object RedisCache {
 
     }
   
+  }
+  
+  def meta(uid:String):String = {
+
+    val k = "meta:" + uid
+    val metas = client.zrange(k, 0, -1)
+
+    if (metas.size() == 0) {
+      null
+    
+    } else {
+      
+      metas.toList.last
+      
+    }
+
   }
   
   /**
