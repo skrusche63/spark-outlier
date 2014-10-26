@@ -21,41 +21,17 @@ package de.kp.spark.outlier.redis
 import java.util.Date
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.spec.FeatureSpec
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
 object RedisCache {
 
   val client  = RedisClient()
   val service = "outlier"
-
-  def addFOutliers(uid:String, outliers:FOutliers) {
-   
-    val now = new Date()
-    val timestamp = now.getTime()
-    
-    val k = "feature:" + service + ":" + uid
-    val v = "" + timestamp + ":" + Serializer.serializeFOutliers(outliers)
-    
-    client.zadd(k,timestamp,v)
-    
-  }
-
-  def addBOutliers(uid:String, outliers:BOutliers) {
-   
-    val now = new Date()
-    val timestamp = now.getTime()
-    
-    val k = "behavior:" + service + ":" + uid
-    val v = "" + timestamp + ":" + Serializer.serializeBOutliers(outliers)
-    
-    client.zadd(k,timestamp,v)
-    
-  }
   
-  def addStatus(uid:String, task:String, status:String) {
+  def addStatus(req:ServiceRequest,status:String) {
+   
+    val (uid,task) = (req.data("uid"),req.task)
    
     val now = new Date()
     val timestamp = now.getTime()
@@ -64,20 +40,6 @@ object RedisCache {
     val v = "" + timestamp + ":" + Serializer.serializeJob(JobDesc(service,task,status))
     
     client.zadd(k,timestamp,v)
-    
-  }
-  
-  def behaviorExists(uid:String):Boolean = {
-
-    val k = "behavior:" + service + ":" + uid
-    client.exists(k)
-    
-  }
- 
-  def featuresExists(uid:String):Boolean = {
-
-    val k = "feature:" + service + ":" + uid
-    client.exists(k)
     
   }
   
@@ -93,68 +55,6 @@ object RedisCache {
     val k = "job:" + service + ":" + uid
     client.exists(k)
     
-  }
-  
-  def features(uid:String):String = {
-
-    val spec = FeatureSpec.get(uid)
-
-    val k = "feature:" + service + ":" + uid
-    val features = client.zrange(k, 0, -1)
-
-    if (features.size() == 0) {
-      Serializer.serializeFDetections(new FDetections(List.empty[FDetection]))
-    
-    } else {
-      
-      val last = features.toList.last
-      val outliers = Serializer.deserializeFOutliers(last.split(":")(1)).items
-      
-      val detections = outliers.map(o => {
-                  
-        val (distance,point) = o
-        val (label,values) = (point.label,point.features)
-                  
-        val features = ArrayBuffer.empty[FField]
-        (1 until spec.length).foreach(i => {
-                    
-           val name  = spec(i)
-           val value = values(i-1)
-                    
-           features += new FField(name,value)
-                  
-        })
-                  
-        new FDetection(distance,label,features.toList)
-  
-      }).toList
-       
-      Serializer.serializeFDetections(new FDetections(detections))
-      
-    }
-  }
-  
-  def behavior(uid:String):String = {
-
-    val k = "rule:" + service + ":" + uid
-    val behavior = client.zrange(k, 0, -1)
-
-    if (behavior.size() == 0) {
-      Serializer.serializeBDetections(new BDetections(List.empty[BDetection]))
-    
-    } else {
-      
-      val last = behavior.toList.last
-      val outliers = Serializer.deserializeBOutliers(last.split(":")(1)).items
-
-      val detections = outliers.map(o => {
-        new BDetection(o._1,o._2,o._3,o._4,o._5)
-      }).toList
-       
-      Serializer.serializeBDetections(new BDetections(detections))
-
-    }
-  
   }
   
   def meta(uid:String):String = {

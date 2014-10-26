@@ -31,14 +31,13 @@ import de.kp.spark.outlier.markov.TransitionMatrix
 import de.kp.spark.outlier.source.{BehaviorSource}
 import de.kp.spark.outlier.redis.RedisCache
 
+import de.kp.spark.outlier.sink.RedisSink
+
 class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLogging {
 
   def receive = {
 
     case req:ServiceRequest => {
-
-      val uid = req.data("uid")     
-      val task = req.task
       
       val params = properties(req)
 
@@ -47,15 +46,15 @@ class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLoggin
 
       if (params != null) {
         /* Register status */
-        RedisCache.addStatus(uid,task,OutlierStatus.STARTED)
+        RedisCache.addStatus(req,OutlierStatus.STARTED)
  
         try {
           
           val dataset = new BehaviorSource(sc).get(req.data)
-          findOutliers(uid,task,dataset,params)
+          findOutliers(req,dataset,params)
 
         } catch {
-          case e:Exception => RedisCache.addStatus(uid,task,OutlierStatus.FAILURE)          
+          case e:Exception => RedisCache.addStatus(req,OutlierStatus.FAILURE)          
         }
  
 
@@ -91,23 +90,29 @@ class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLoggin
     
   }
     
-  private def findOutliers(uid:String,task:String,sequences:RDD[Behavior],params:(String,Double)) {
+  private def findOutliers(req:ServiceRequest,sequences:RDD[Behavior],params:(String,Double)) {
 
-    RedisCache.addStatus(uid,task,OutlierStatus.DATASET)
+    RedisCache.addStatus(req,OutlierStatus.DATASET)
 
     val detector = new MarkovDetector()
     
     val model = detector.train(sequences)
-    RedisCache.addStatus(uid,task,OutlierStatus.TRAINED)
+    RedisCache.addStatus(req,OutlierStatus.TRAINED)
          
     val (algorithm,threshold) = params          
     val outliers = detector.detect(sequences,algorithm,threshold,model).collect().toList
           
-    /* Put outliers to cache */
-    RedisCache.addBOutliers(uid,new BOutliers(outliers))
+    saveOutliers(req,new BOutliers(outliers))
           
     /* Update cache */
-    RedisCache.addStatus(uid,task,OutlierStatus.FINISHED)
+    RedisCache.addStatus(req,OutlierStatus.FINISHED)
+    
+  }
+  
+  private def saveOutliers(req:ServiceRequest,outliers:BOutliers) {
+    
+    val sink = new RedisSink()
+    sink.addBOutliers(req,outliers)
     
   }
   

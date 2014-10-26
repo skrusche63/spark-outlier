@@ -23,9 +23,12 @@ import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.redis.RedisCache
 
+import de.kp.spark.outlier.sink.RedisSink
+
 class OutlierQuestor extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
+  private val sink = new RedisSink()
 
   def receive = {
     
@@ -43,13 +46,13 @@ class OutlierQuestor extends Actor with ActorLogging {
             
             case Algorithms.KMEANS => {
 
-              if (RedisCache.featuresExists(uid) == false) {    
+              if (sink.featuresExist(uid) == false) {    
                 failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
               } else {         
                 
                 /* Retrieve and serialize detected outliers */
-                val outliers = RedisCache.features(uid)
+                val outliers = sink.features(uid)
 
                 val data = Map("uid" -> uid, "outliers" -> outliers)            
                 new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
@@ -60,13 +63,13 @@ class OutlierQuestor extends Actor with ActorLogging {
             
             case Algorithms.MARKOV => {
 
-              if (RedisCache.behaviorExists(uid) == false) {   
+              if (sink.behaviorExists(uid) == false) {   
                 failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
               } else {       
                 
                 /* Retrieve and serialize detected outliers */
-                val outliers = RedisCache.behavior(uid)
+                val outliers = sink.behavior(uid)
 
                 val data = Map("uid" -> uid, "outliers" -> outliers)            
                 new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
