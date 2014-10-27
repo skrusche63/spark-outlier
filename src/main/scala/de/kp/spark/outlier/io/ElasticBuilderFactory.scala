@@ -23,28 +23,27 @@ object ElasticBuilderFactory {
   /*
    * Definition of common parameters for all indexing tasks
    */
+  val SITE_FIELD:String = "site"
   val TIMESTAMP_FIELD:String = "timestamp"
 
   /******************************************************************
    *                          ITEM
    *****************************************************************/
 
-  val SITE_FIELD:String = "site"
   val USER_FIELD:String = "user"
 
   val GROUP_FIELD:String = "group"
   val ITEM_FIELD:String  = "item"
 
-    val PRICE_FIELD:String  = "price"
+  val PRICE_FIELD:String  = "price"
 
-  def getBuilder(builder:String,mapping:String):XContentBuilder = {
+  def getBuilder(builder:String,mapping:String,names:List[String]=List.empty[String],types:List[String]=List.empty[String]):XContentBuilder = {
     
     builder match {
-      /*
-       * Elasticsearch is used to track item-based events to provide
-       * a transaction database within an Elasticsearch index
-       */
+
       case "item" => new ElasticItemBuilder().createBuilder(mapping)
+
+      case "feature" => new ElasticFeatureBuilder().createBuilder(mapping,names,types)
       
       case _ => null
       
