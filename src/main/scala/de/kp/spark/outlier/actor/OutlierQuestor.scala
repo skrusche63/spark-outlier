@@ -39,51 +39,46 @@ class OutlierQuestor extends Actor with ActorLogging {
       
       req.task match {
         
-        case "get:outliers" => {
+        case "get:behavior" => {
 
-          val algorithm = req.data("algorithm")
-          val response = algorithm match {
-            
-            case Algorithms.KMEANS => {
+          val response = {
 
-              if (sink.featuresExist(uid) == false) {    
-                failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            if (sink.behaviorExists(uid) == false) {   
+              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
-              } else {         
+            } else {       
                 
-                /* Retrieve and serialize detected outliers */
+              /* Retrieve and serialize detected outliers */
+              val outliers = sink.behavior(uid)
+
+              val data = Map("uid" -> uid, "behavior" -> outliers)            
+              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
+            
+            }
+          } 
+          
+          origin ! Serializer.serializeResponse(response)
+          context.stop(self)
+          
+        }
+        case "get:features" => {
+
+          val response = {
+
+            if (sink.featuresExist(uid) == false) {    
+              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            
+            } else {         
+                
+              /* Retrieve and serialize detected outliers */
                 val outliers = sink.features(uid)
 
-                val data = Map("uid" -> uid, "outliers" -> outliers)            
-                new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
+              val data = Map("uid" -> uid, "features" -> outliers)            
+              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
              
-              }
-              
             }
-            
-            case Algorithms.MARKOV => {
-
-              if (sink.behaviorExists(uid) == false) {   
-                failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
-            
-              } else {       
-                
-                /* Retrieve and serialize detected outliers */
-                val outliers = sink.behavior(uid)
-
-                val data = Map("uid" -> uid, "outliers" -> outliers)            
-                new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
-            
-              }
-              
-            }
-            
-            case _ => {
-             failure(req,Messages.METHOD_NOT_SUPPORTED(uid))              
-            }
-            
-          }
-           
+          
+          } 
           origin ! Serializer.serializeResponse(response)
           context.stop(self)
            
