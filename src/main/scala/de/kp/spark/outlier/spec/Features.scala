@@ -23,9 +23,9 @@ import de.kp.spark.outlier.redis.RedisCache
 import scala.xml._
 import scala.collection.mutable.ArrayBuffer
 
-object FeatureSpec extends Serializable {
+object Features extends Serializable {
   
-  val path = "featurespec.xml"
+  val path = "features.xml"
 
   def get(uid:String):List[String] = {
 
@@ -33,17 +33,22 @@ object FeatureSpec extends Serializable {
   
     try {
           
-      val root = if (RedisCache.metaExists(uid)) {      
-        XML.load(RedisCache.meta(uid))
+      if (RedisCache.fieldsExist(uid)) {     
+        
+        val fieldspec = RedisCache.fields(uid)
+        for (field <- fieldspec.items) {
+          fields += field.name
+        }
     
       } else {
-        XML.load(getClass.getClassLoader.getResource(path))  
+        
+        val root = XML.load(getClass.getClassLoader.getResource(path))  
+        for (field <- root \ "field") {
+          fields += field.text 
+        }
       
      }
    
-     for (field <- root \ "field") {
-       fields += field.text 
-     }
       
     } catch {
       case e:Exception => {}

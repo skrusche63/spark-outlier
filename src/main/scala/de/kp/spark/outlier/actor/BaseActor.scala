@@ -1,4 +1,4 @@
-package de.kp.spark.outlier.spec
+package de.kp.spark.outlier.actor
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,44 +18,22 @@ package de.kp.spark.outlier.spec
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import de.kp.spark.outlier.redis.RedisCache
+import akka.actor.{Actor,ActorLogging,ActorRef,Props}
+import de.kp.spark.outlier.model._
 
-import scala.xml._
-import scala.collection.mutable.HashMap
-
-object BehaviorSpec {
-  
-  val path = "behaviorspec.xml"
-
-  def get(uid:String):Map[String,(String,String)] = {
-
-    val fields =  HashMap.empty[String,(String,String)]
-  
-    try {
-          
-      val root = if (RedisCache.metaExists(uid)) {      
-        XML.load(RedisCache.meta(uid))
+abstract class BaseActor extends Actor with ActorLogging {
+ 
+  protected def failure(req:ServiceRequest,message:String):ServiceResponse = {
     
-      } else {
-        XML.load(getClass.getClassLoader.getResource(path))  
+    if (req == null) {
+      val data = Map("message" -> message)
+      new ServiceResponse("","",data,OutlierStatus.FAILURE)	
       
-      }
-   
-      for (field <- root \ "field") {
-      
-        val _name  = (field \ "@name").toString
-        val _type  = (field \ "@type").toString
-
-        val _mapping = field.text
-        fields += _name -> (_mapping,_type) 
-      
-      }
-      
-    } catch {
-      case e:Exception => {}
+    } else {
+      val data = Map("uid" -> req.data("uid"), "message" -> message)
+      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
+    
     }
-    
-    fields.toMap
     
   }
 

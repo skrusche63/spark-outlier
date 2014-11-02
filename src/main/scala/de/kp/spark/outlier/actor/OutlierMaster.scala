@@ -57,6 +57,7 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
         case "train"  => ask(actor("miner"),deser).mapTo[ServiceResponse]
         case "status" => ask(actor("miner"),deser).mapTo[ServiceResponse]
 
+        case "register"  => ask(actor("registrar"),deser).mapTo[ServiceResponse]
         case "track" => ask(actor("tracker"),deser).mapTo[ServiceResponse]
        
         case _ => {
@@ -95,6 +96,8 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
       case "miner" => context.actorOf(Props(new OutlierMiner(sc)))
         
       case "questor" => context.actorOf(Props(new OutlierQuestor()))
+        
+      case "registrar" => context.actorOf(Props(new OutlierRegistrar()))
         
       case "tracker" => context.actorOf(Props(new OutlierTracker()))
       

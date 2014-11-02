@@ -25,7 +25,7 @@ import de.kp.spark.outlier.redis.RedisCache
 
 import de.kp.spark.outlier.sink.RedisSink
 
-class OutlierQuestor extends Actor with ActorLogging {
+class OutlierQuestor extends BaseActor {
 
   implicit val ec = context.dispatcher
   private val sink = new RedisSink()
@@ -39,7 +39,7 @@ class OutlierQuestor extends Actor with ActorLogging {
       
       req.task match {
         
-        case "get:behavior" => {
+        case "get:sequences" => {
 
           val response = {
 
@@ -51,7 +51,7 @@ class OutlierQuestor extends Actor with ActorLogging {
               /* Retrieve and serialize detected outliers */
               val outliers = sink.behavior(uid)
 
-              val data = Map("uid" -> uid, "behavior" -> outliers)            
+              val data = Map("uid" -> uid, "sequences" -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
             
             }
@@ -97,20 +97,6 @@ class OutlierQuestor extends Actor with ActorLogging {
       
     }
   
-  }
- 
-  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
-    
-    if (req == null) {
-      val data = Map("message" -> message)
-      new ServiceResponse("","",data,OutlierStatus.FAILURE)	
-      
-    } else {
-      val data = Map("uid" -> req.data("uid"), "message" -> message)
-      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
-    
-    }
-    
   }
  
 }

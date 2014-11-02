@@ -37,6 +37,14 @@ case class ServiceResponse(
 case class JobDesc(
   service:String,task:String,status:String
 )
+/*
+ * The Field and Fields classes are used to specify the fields with
+ * respect to the data source provided
+ */
+case class Field(
+  name:String,datatype:String,value:String
+)
+case class Fields(items:List[Field])
 
 case class FField(field:String,value:Double)
 
@@ -82,6 +90,11 @@ object Sources {
 object Serializer {
     
   implicit val formats = Serialization.formats(NoTypeHints)
+  
+  def serializeFields(fields:Fields):String = write(fields)
+  
+  def deserializeFields(fields:String):Fields = read[Fields](fields)
+
   /*
    * Support for serialization and deserialization of detections
    */
