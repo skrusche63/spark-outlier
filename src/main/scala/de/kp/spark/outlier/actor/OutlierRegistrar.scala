@@ -97,7 +97,7 @@ class OutlierRegistrar extends BaseActor {
             fields += new Field("user","string",req.data("user"))
             fields += new Field("group","string",req.data("group"))
 
-            fields += new Field("item","integer",req.data("integer"))
+            fields += new Field("item","integer",req.data("item"))
             fields += new Field("price","float",req.data("price"))
             
             RedisCache.addFields(req, new Fields(fields.toList))
