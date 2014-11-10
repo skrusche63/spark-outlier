@@ -36,7 +36,7 @@ class OutlierRegistrar extends BaseActor {
       
       req.task match {
         
-        case "register:features" => {
+        case "register:feature" => {
       
           val response = try {
         
@@ -84,7 +84,7 @@ class OutlierRegistrar extends BaseActor {
           
         } 
         
-        case "register:sequences" => {
+        case "register:sequence" => {
       
           val response = try {
         

@@ -39,7 +39,7 @@ class OutlierQuestor extends BaseActor {
       
       req.task match {
         
-        case "get:sequences" => {
+        case "get:sequence" => {
 
           val response = {
 
@@ -51,7 +51,7 @@ class OutlierQuestor extends BaseActor {
               /* Retrieve and serialize detected outliers */
               val outliers = sink.behavior(uid)
 
-              val data = Map("uid" -> uid, "sequences" -> outliers)            
+              val data = Map("uid" -> uid, "sequence" -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
             
             }
@@ -61,7 +61,7 @@ class OutlierQuestor extends BaseActor {
           context.stop(self)
           
         }
-        case "get:features" => {
+        case "get:feature" => {
 
           val response = {
 
@@ -73,7 +73,7 @@ class OutlierQuestor extends BaseActor {
               /* Retrieve and serialize detected outliers */
                 val outliers = sink.features(uid)
 
-              val data = Map("uid" -> uid, "features" -> outliers)            
+              val data = Map("uid" -> uid, "feature" -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
              
             }
