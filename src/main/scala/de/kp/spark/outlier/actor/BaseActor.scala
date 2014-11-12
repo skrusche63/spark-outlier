@@ -19,6 +19,8 @@ package de.kp.spark.outlier.actor
 */
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
+
+import de.kp.spark.outlier.RemoteContext
 import de.kp.spark.outlier.model._
 
 abstract class BaseActor extends Actor with ActorLogging {
@@ -35,6 +37,38 @@ abstract class BaseActor extends Actor with ActorLogging {
     
     }
     
+  }
+
+  /**
+   * Notify all registered listeners about a certain status
+   */
+  protected def notify(req:ServiceRequest,status:String) {
+
+    /* Build message */
+    val data = Map("uid" -> req.data("uid"))
+    val response = new ServiceResponse(req.service,req.task,data,status)	
+    
+    /* Notify listeners */
+    val message = Serializer.serializeResponse(response)    
+    RemoteContext.notify(message)
+    
+  }
+  
+  protected def response(req:ServiceRequest,missing:Boolean):ServiceResponse = {
+    
+    val uid = req.data("uid")
+    
+    if (missing == true) {
+      val data = Map("uid" -> uid, "message" -> Messages.MISSING_PARAMETERS(uid))
+      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
+  
+    } else {
+      val data = Map("uid" -> uid, "message" -> Messages.OUTLIER_DETECTION_STARTED(uid))
+      new ServiceResponse(req.service,req.task,data,OutlierStatus.STARTED)	
+      
+  
+    }
+
   }
 
 }

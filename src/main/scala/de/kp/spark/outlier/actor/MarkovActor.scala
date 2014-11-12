@@ -21,8 +21,6 @@ package de.kp.spark.outlier.actor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import akka.actor.{Actor,ActorLogging}
-
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.MarkovDetector
@@ -33,7 +31,7 @@ import de.kp.spark.outlier.redis.RedisCache
 
 import de.kp.spark.outlier.sink.RedisSink
 
-class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLogging {
+class MarkovActor(@transient val sc:SparkContext) extends BaseActor {
 
   def receive = {
 
@@ -106,6 +104,9 @@ class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLoggin
           
     /* Update cache */
     RedisCache.addStatus(req,OutlierStatus.FINISHED)
+
+    /* Notify potential listeners */
+    notify(req,OutlierStatus.FINISHED)
     
   }
   
@@ -114,23 +115,6 @@ class MarkovActor(@transient val sc:SparkContext) extends Actor with ActorLoggin
     val sink = new RedisSink()
     sink.addBOutliers(req,outliers)
     
-  }
-  
-  private def response(req:ServiceRequest,missing:Boolean):ServiceResponse = {
-    
-    val uid = req.data("uid")
-    
-    if (missing == true) {
-      val data = Map("uid" -> uid, "message" -> Messages.MISSING_PARAMETERS(uid))
-      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
-  
-    } else {
-      val data = Map("uid" -> uid, "message" -> Messages.OUTLIER_DETECTION_STARTED(uid))
-      new ServiceResponse(req.service,req.task,data,OutlierStatus.STARTED)	
-      
-  
-    }
-
   }
 
 }
