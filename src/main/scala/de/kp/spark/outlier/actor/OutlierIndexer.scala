@@ -51,6 +51,7 @@ class OutlierIndexer extends BaseActor {
             val builder = EBF.getBuilder("feature",mapping,names,types)
             val indexer = new ElasticIndexer()
         
+            indexer.create(index,mapping,builder)
             indexer.close()
       
             val data = Map("uid" -> uid, "message" -> Messages.SEARCH_INDEX_CREATED(uid))
