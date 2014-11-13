@@ -65,17 +65,17 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
    */
   private def routes:Route = {
 
-    path("train") {
-	  post {
-	    respondWithStatus(OK) {
-	      ctx => doTrain(ctx)
-	    }
-	  }
-    }  ~ 
     path("get" / Segment) {subject => 
 	  post {
 	    respondWithStatus(OK) {
 	      ctx => doGet(ctx,subject)
+	    }
+	  }
+    }  ~ 
+    path("index" / Segment) {subject =>  
+	  post {
+	    respondWithStatus(OK) {
+	      ctx => doIndex(ctx,subject)
 	    }
 	  }
     }  ~ 
@@ -99,7 +99,14 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
 	      ctx => doTrack(ctx,subject)
 	    }
 	  }
-    }     
+    }  ~ 
+    path("train") {
+	  post {
+	    respondWithStatus(OK) {
+	      ctx => doTrain(ctx)
+	    }
+	  }
+    } 
   
   }
 
@@ -117,6 +124,20 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
 
   }
 
+  private def doIndex[T](ctx:RequestContext,subject:String) = {
+	    
+    subject match {
+
+      case "feature" => doRequest(ctx,"outlier","index:feature")
+      
+	  case "sequence" => doRequest(ctx,"outlier","index:sequence")
+	      
+	  case _ => {}
+	  
+    }
+    
+  }
+
   private def doRegister[T](ctx:RequestContext,subject:String) = {
  
     subject match {
@@ -130,8 +151,6 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
     }
 
   }
-
-  private def doTrain[T](ctx:RequestContext) = doRequest(ctx,"outlier","train")
 
   private def doStatus[T](ctx:RequestContext) = doRequest(ctx,"outlier","status")
 
@@ -148,6 +167,8 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
     }
     
   }
+
+  private def doTrain[T](ctx:RequestContext) = doRequest(ctx,"outlier","train")
   
   private def doRequest[T](ctx:RequestContext,service:String,task:String="train") = {
      

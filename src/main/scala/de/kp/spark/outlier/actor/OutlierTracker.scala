@@ -20,17 +20,14 @@ package de.kp.spark.outlier.actor
 
 import java.util.Date
 
-import akka.actor.{Actor,ActorLogging}
-
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.io.ElasticWriter
-import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF}
+import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF, ElasticWriter}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.HashMap
 
-class OutlierTracker extends Actor with ActorLogging {
+class OutlierTracker extends BaseActor {
   
   def receive = {
     
@@ -83,21 +80,13 @@ class OutlierTracker extends Actor with ActorLogging {
   private def createLabeledPoint(req:ServiceRequest) {
           
     try {
-      /*
-       * Elasticsearch is used as a source and also as a sink; this implies
-       * that the respective index and mapping must be distinguished; the source
-       * index and mapping used here is the same as for ElasticSource
-       */
-      val index   = req.data("source.index")
-      val mapping = req.data("source.type")
+
+      val index   = req.data("index")
+      val mapping = req.data("type")
     
-      val (names,types) = fieldspec(req.data)
-    
-      val builder = EBF.getBuilder("feature",mapping,names,types)
       val writer = new ElasticWriter()
     
-      /* Prepare index and mapping for write */
-      val readyToWrite = writer.open(index,mapping,builder)
+      val readyToWrite = writer.open(index,mapping)
       if (readyToWrite == false) {
       
         writer.close()
@@ -156,27 +145,6 @@ class OutlierTracker extends Actor with ActorLogging {
     source
     
   }
- 
-  private def fieldspec(params:Map[String,String]):(List[String],List[String]) = {
-    
-    val records = params.filter(kv => kv._1.startsWith("lbl.") || kv._1.startsWith("fea."))
-    val spec = records.map(rec => {
-      
-      val (k,v) = rec
-
-      val _name = k.replace("lbl.","").replace("fea.","")
-      val _type = "string"    
-
-      (_name,_type)
-    
-    }).filter(kv => kv._2 != "none")
-    
-    val names = spec.map(_._1).toList
-    val types = spec.map(_._2).toList
-    
-    (names,types)
-    
-  }  
   
   private def prepareSequence(params:Map[String,String]):java.util.Map[String,Object] = {
     
@@ -199,24 +167,18 @@ class OutlierTracker extends Actor with ActorLogging {
   private def createSequence(req:ServiceRequest) {
           
     try {
-      /*
-       * Elasticsearch is used as a source and also as a sink; this implies
-       * that the respective index and mapping must be distinguished; the source
-       * index and mapping used here is the same as for ElasticSource
-       */
-      val index   = req.data("source.index")
-      val mapping = req.data("source.type")
+
+      val index   = req.data("index")
+      val mapping = req.data("type")
     
-      val builder = EBF.getBuilder("item",mapping)
       val writer = new ElasticWriter()
     
-      /* Prepare index and mapping for write */
-      val readyToWrite = writer.open(index,mapping,builder)
+      val readyToWrite = writer.open(index,mapping)
       if (readyToWrite == false) {
       
         writer.close()
       
-        val msg = String.format("""Opening index '%s' and maping '%s' for write failed.""",index,mapping)
+        val msg = String.format("""Opening index '%s' and mapping '%s' for write failed.""",index,mapping)
         throw new Exception(msg)
       
       } else {
@@ -242,20 +204,6 @@ class OutlierTracker extends Actor with ActorLogging {
 
     }
     
-  }
-
-  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
-    
-    if (req == null) {
-      val data = Map("message" -> message)
-      new ServiceResponse("","",data,OutlierStatus.FAILURE)	
-      
-    } else {
-      val data = Map("uid" -> req.data("uid"), "message" -> message)
-      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
-    
-    }
-
   }
  
 }

@@ -53,6 +53,7 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
 	  val response = deser.task.split(":")(0) match {
         
         case "get" => ask(actor("questor"),deser).mapTo[ServiceResponse]
+        case "index" => ask(actor("indexer"),deser).mapTo[ServiceResponse]
         
         case "train"  => ask(actor("miner"),deser).mapTo[ServiceResponse]
         case "status" => ask(actor("miner"),deser).mapTo[ServiceResponse]
@@ -92,6 +93,8 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
   private def actor(worker:String):ActorRef = {
     
     worker match {
+  
+      case "indexer" => context.actorOf(Props(new OutlierIndexer()))
   
       case "miner" => context.actorOf(Props(new OutlierMiner(sc)))
         
