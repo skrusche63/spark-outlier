@@ -21,7 +21,10 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.outlier.Configuration
+
 import de.kp.spark.outlier.model.{Behavior,Sources}
+import de.kp.spark.outlier.spec.Sequences
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -31,63 +34,55 @@ private case class Sequence(site:String,user:String,orders:List[(Long,List[Item]
 
 class BehaviorSource(@transient sc:SparkContext) {
 
+  private val model = new BehaviorModel(sc)
+  
   def get(data:Map[String,String]):RDD[Behavior] = {
 
+    val uid = data("uid")
+    
     val source = data("source")
-    val rawset = source match {
+    source match {
       /* 
        * Discover outliers from feature set persisted as an appropriate search 
        * index from Elasticsearch; the configuration parameters are retrieved 
        * from the service configuration 
        */    
-      case Sources.ELASTIC => new ElasticSource(sc).items(data)
+      case Sources.ELASTIC => {
+        
+        val rawset = new ElasticSource(sc).connect(data)
+        model.buildElastic(uid,rawset)
+      
+      }
       /* 
        * Discover outliers from feature set persisted as a file on the (HDFS) 
        * file system; the configuration parameters are retrieved from the service 
        * configuration  
        */    
-       case Sources.FILE => new FileSource(sc).items(data)
+       case Sources.FILE => {
+         
+         val path = Configuration.file()._1
+
+         val rawset = new FileSource(sc).connect(data,path)
+         model.buildFile(uid,rawset)
+         
+       }
        /*
         * Discover outliers from feature set persisted as an appropriate table 
         * from a JDBC database; the configuration parameters are retrieved from 
         * the service configuration
         */
-       case Sources.JDBC => new JdbcSource(sc).items(data)
+       case Sources.JDBC => {
+     
+         val fields = Sequences.get(uid).map(kv => kv._2._1).toList    
+         
+         val rawset = new JdbcSource(sc).connect(data,fields)
+         model.buildJDBC(uid,rawset)
+         
+       }
 
        case _ => null
       
     }
-
-    /*
-     * Format: (site,user,order,timestamp,item,price)
-     * 
-     * Group source by 'site' & 'user' and aggregate all items of a 
-     * single order, sort respective orders by time and publish as
-     * user sequence
-     */
-    val sequences = rawset.groupBy(v => (v._1,v._2)).map(data => {
-
-      val (site,user) = data._1
-      /*
-       * Aggregate all items of a certain order, and then sort these 
-       * items by timestamp in ascending order.
-       */
-      val orders = data._2.groupBy(_._3).map(group => {
-
-        val head = group._2.head
-
-        val timestamp = head._4        
-        val items = group._2.map(data => new Item(data._5,data._6)).toList
-
-        (timestamp,items)
-        
-      }).toList.sortBy(_._1)
-      
-      new Sequence(site,user,orders)
-      
-    })
-
-    new BehaviorModel().buildStates(sequences)
     
   }
 

@@ -92,7 +92,7 @@ class MarkovActor(@transient val sc:SparkContext) extends BaseActor {
 
     RedisCache.addStatus(req,OutlierStatus.DATASET)
 
-    val detector = new MarkovDetector()
+    val detector = new MarkovDetector(sc)
     
     val model = detector.train(sequences)
     RedisCache.addStatus(req,OutlierStatus.TRAINED)

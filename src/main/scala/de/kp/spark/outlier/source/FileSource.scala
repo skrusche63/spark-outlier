@@ -21,40 +21,8 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.Configuration
-import de.kp.spark.outlier.model.LabeledPoint
-
 class FileSource(@transient sc:SparkContext) extends Serializable {
 
-  val (fItems,fFeatures) = Configuration.file()
-
-  /**
-   * Load labeled features from the file system
-   */
-  def features(params:Map[String,Any]):RDD[LabeledPoint] = {
-    
-    sc.textFile(fFeatures).map(valu => {
-      
-      val Array(label,features) = valu.split(",")  
-      new LabeledPoint(label,features.split(" ").map(_.toDouble))
-    
-    }).cache
-    
-  }
-
-  /**
-   * Load ecommerce items from the file system
-   */
-  def items(params:Map[String,Any]):RDD[(String,String,String,Long,String,Float)] = {
-
-    sc.textFile(fItems).map(valu => {
-      
-      val Array(site,user,order,timestamp,item,price) = valu.split(",")  
-      (site,user,order,timestamp.toLong,item,price.toFloat)
-
-    
-    }).cache
-    
-  }
+  def connect(params:Map[String,Any],path:String):RDD[String] = sc.textFile(path)
 
 }

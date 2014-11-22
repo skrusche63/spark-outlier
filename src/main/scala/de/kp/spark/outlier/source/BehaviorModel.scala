@@ -18,10 +18,13 @@ package de.kp.spark.outlier.source
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import de.kp.spark.outlier.Configuration
+
 import de.kp.spark.outlier.model.Behavior
+import de.kp.spark.outlier.spec.Sequences
 
 import de.kp.spark.outlier.markov.StateSpec
 
@@ -38,7 +41,7 @@ import scala.collection.mutable.ArrayBuffer
  * since last transaction into account and transforms a transaction 
  * into a discrete state 
  */
-class BehaviorModel() extends StateSpec with Serializable {
+class BehaviorModel(@transient sc:SparkContext) extends StateSpec with Serializable {
   
   private val model = Configuration.model
   /*
@@ -74,6 +77,100 @@ class BehaviorModel() extends StateSpec with Serializable {
   
   override def stateDefs = FD_STATE_DEFS
   
+  def buildElastic(uid:String,rawset:RDD[Map[String,String]]):RDD[Behavior] = {
+
+    val spec = sc.broadcast(Sequences.get(uid))
+    val dataset = rawset.map(data => {
+      
+      val site = data(spec.value("site")._1)
+      val timestamp = data(spec.value("timestamp")._1).toLong
+
+      val user = data(spec.value("user")._1)      
+      val group = data(spec.value("group")._1)
+
+      val item  = data(spec.value("item")._1)
+      val price  = data(spec.value("price")._1).toFloat
+      
+      (site,user,group,timestamp,item,price)
+      
+    })
+    
+    val sequences = buildSequences(dataset)
+    buildStates(sequences)
+
+  }
+  
+  def buildFile(uid:String,rawset:RDD[String]):RDD[Behavior] = {
+
+    val dataset = rawset.map(valu => {
+      
+      val Array(site,user,order,timestamp,item,price) = valu.split(",")  
+      (site,user,order,timestamp.toLong,item,price.toFloat)
+
+    
+    })
+    
+    val sequences = buildSequences(dataset)
+    buildStates(sequences)
+    
+  }
+
+  def buildJDBC(uid:String,rawset:RDD[Map[String,Any]]):RDD[Behavior] = {
+     
+    val fieldspec = Sequences.get(uid)
+    val spec = sc.broadcast(fieldspec)
+    val dataset = rawset.map(data => {
+      
+      val site = data(spec.value("site")._1).asInstanceOf[String]
+      val timestamp = data(spec.value("timestamp")._1).asInstanceOf[Long]
+
+      val user = data(spec.value("user")._1).asInstanceOf[String] 
+      val group = data(spec.value("group")._1).asInstanceOf[String]
+      
+      val item  = data(spec.value("item")._1).asInstanceOf[String]
+      val price  = data(spec.value("price")._1).asInstanceOf[Float]
+      
+      (site,user,group,timestamp,item,price)
+      
+    })
+    
+    val sequences = buildSequences(dataset)
+    buildStates(sequences)
+    
+  }
+  
+  private def buildSequences(rawset:RDD[(String,String,String,Long,String,Float)]):RDD[Sequence] = {
+    
+    /*
+     * Format: (site,user,order,timestamp,item,price)
+     * 
+     * Group source by 'site' & 'user' and aggregate all items of a 
+     * single order, sort respective orders by time and publish as
+     * user sequence
+     */
+    rawset.groupBy(v => (v._1,v._2)).map(data => {
+
+      val (site,user) = data._1
+      /*
+       * Aggregate all items of a certain order, and then sort these 
+       * items by timestamp in ascending order.
+       */
+      val orders = data._2.groupBy(_._3).map(group => {
+
+        val head = group._2.head
+
+        val timestamp = head._4        
+        val items = group._2.map(data => new Item(data._5,data._6)).toList
+
+        (timestamp,items)
+        
+      }).toList.sortBy(_._1)
+      
+      new Sequence(site,user,orders)
+      
+    })
+    
+  }
   /**
    * Represent transactions as a time ordered sequence of Markov States;
    * the result is directly used to build the respective Markov Model

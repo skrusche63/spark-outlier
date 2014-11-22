@@ -18,6 +18,7 @@ package de.kp.spark.outlier
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import de.kp.spark.outlier.model._
@@ -28,16 +29,14 @@ import de.kp.spark.outlier.source.BehaviorModel
 /**
  * The MarkovDetector discovers outliers from registered behavior.
  */
-class MarkovDetector() extends Serializable {
+class MarkovDetector(@transient sc:SparkContext) extends Serializable {
 
-  val behavior = new BehaviorModel()
+  val behavior = new BehaviorModel(sc)
   val metrics  = new StateMetrics(behavior.stateDefs)
   
   def detect(sequences:RDD[Behavior],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,List[String],Double,String)] = {
 
-    val sc = sequences.context
-    val bmatrix = sc.broadcast(matrix)
-    
+    val bmatrix = sc.broadcast(matrix)    
     sequences.map(seq => {
       
       val (site,user,states) = (seq.site,seq.user,seq.states)
