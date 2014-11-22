@@ -20,7 +20,8 @@ package de.kp.spark.outlier.rest
 
 import akka.actor.ActorSystem
 
-import de.kp.spark.outlier.{Configuration,SparkService}
+import de.kp.spark.core.SparkService
+import de.kp.spark.outlier.Configuration
 
 object RestServer extends SparkService {
   
