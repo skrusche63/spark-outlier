@@ -23,7 +23,7 @@ import java.util.Date
 import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.spec.Features
 
-import de.kp.spark.outlier.redis.RedisClient
+import de.kp.spark.core.redis.RedisClient
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer

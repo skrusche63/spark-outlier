@@ -20,6 +20,7 @@ package de.kp.spark.outlier.redis
 
 import java.util.Date
 
+import de.kp.spark.core.redis.RedisClient
 import de.kp.spark.outlier.model._
 
 import scala.collection.JavaConversions._

@@ -21,7 +21,7 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.core.source.{ElasticSource,JdbcSource}
+import de.kp.spark.core.source.{ElasticSource,FileSource,JdbcSource}
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model._
