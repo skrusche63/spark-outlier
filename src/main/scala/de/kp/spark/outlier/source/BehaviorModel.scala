@@ -21,6 +21,7 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.model._
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model.Behavior
@@ -77,9 +78,9 @@ class BehaviorModel(@transient sc:SparkContext) extends StateSpec with Serializa
   
   override def stateDefs = FD_STATE_DEFS
   
-  def buildElastic(uid:String,rawset:RDD[Map[String,String]]):RDD[Behavior] = {
+  def buildElastic(req:ServiceRequest,rawset:RDD[Map[String,String]]):RDD[Behavior] = {
 
-    val spec = sc.broadcast(Sequences.get(uid))
+    val spec = sc.broadcast(Sequences.get(req))
     val dataset = rawset.map(data => {
       
       val site = data(spec.value("site")._1)
@@ -100,7 +101,7 @@ class BehaviorModel(@transient sc:SparkContext) extends StateSpec with Serializa
 
   }
   
-  def buildFile(uid:String,rawset:RDD[String]):RDD[Behavior] = {
+  def buildFile(req:ServiceRequest,rawset:RDD[String]):RDD[Behavior] = {
 
     val dataset = rawset.map(valu => {
       
@@ -115,9 +116,9 @@ class BehaviorModel(@transient sc:SparkContext) extends StateSpec with Serializa
     
   }
 
-  def buildJDBC(uid:String,rawset:RDD[Map[String,Any]]):RDD[Behavior] = {
+  def buildJDBC(req:ServiceRequest,rawset:RDD[Map[String,Any]]):RDD[Behavior] = {
      
-    val fieldspec = Sequences.get(uid)
+    val fieldspec = Sequences.get(req)
     val spec = sc.broadcast(fieldspec)
     val dataset = rawset.map(data => {
       

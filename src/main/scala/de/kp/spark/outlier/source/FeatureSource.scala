@@ -21,6 +21,7 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.model._
 import de.kp.spark.core.source.{ElasticSource,FileSource,JdbcSource}
 import de.kp.spark.outlier.Configuration
 
@@ -37,11 +38,11 @@ class FeatureSource(@transient sc:SparkContext) {
 
   private val model = new FeatureModel(sc)
   
-  def get(data:Map[String,String]):RDD[LabeledPoint] = {
+  def get(req:ServiceRequest):RDD[LabeledPoint] = {
 
-    val uid = data("uid")
+    val uid = req.data("uid")
     
-    val source = data("source")
+    val source = req.data("source")
     source match {
       
       /* 
@@ -51,8 +52,8 @@ class FeatureSource(@transient sc:SparkContext) {
        */    
       case Sources.ELASTIC => {
         
-        val rawset = new ElasticSource(sc).connect(data)
-        model.buildElastic(uid,rawset)
+        val rawset = new ElasticSource(sc).connect(req.data)
+        model.buildElastic(req,rawset)
         
       }
       /* 
@@ -64,8 +65,8 @@ class FeatureSource(@transient sc:SparkContext) {
         
         val path = Configuration.file()._2
         
-        val rawset = new FileSource(sc).connect(data,path)
-        model.buildFile(uid,rawset)
+        val rawset = new FileSource(sc).connect(req.data,path)
+        model.buildFile(req,rawset)
         
       }
       /*
@@ -75,10 +76,10 @@ class FeatureSource(@transient sc:SparkContext) {
        */
       case Sources.JDBC => {
         
-        val fields = Features.get(uid)
+        val fields = Features.get(req)
 
-        val rawset = new JdbcSource(sc).connect(data,fields)
-        model.buildJDBC(uid,rawset)
+        val rawset = new JdbcSource(sc).connect(req.data,fields)
+        model.buildJDBC(req,rawset)
 
       }
       

@@ -21,11 +21,12 @@ package de.kp.spark.outlier.actor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.model._
+
 import de.kp.spark.outlier.KMeansDetector
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.source.FeatureSource
-import de.kp.spark.outlier.redis.RedisCache
 
 import de.kp.spark.outlier.sink.RedisSink
 
@@ -44,13 +45,13 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
  
         try {
 
-          RedisCache.addStatus(req,OutlierStatus.STARTED)
+          cache.addStatus(req,OutlierStatus.STARTED)
           
-          val dataset = new FeatureSource(sc).get(req.data)          
+          val dataset = new FeatureSource(sc).get(req)          
           findOutliers(req,dataset,params)
 
         } catch {
-          case e:Exception => RedisCache.addStatus(req,OutlierStatus.FAILURE)          
+          case e:Exception => cache.addStatus(req,OutlierStatus.FAILURE)          
         }
 
       }
@@ -87,7 +88,7 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
   
   private def findOutliers(req:ServiceRequest,dataset:RDD[LabeledPoint],params:(Int,String)) {
 
-    RedisCache.addStatus(req,OutlierStatus.DATASET)
+    cache.addStatus(req,OutlierStatus.DATASET)
     
     /* Find outliers in set of labeled datapoints */
     val (k,strategy) = params     
@@ -96,7 +97,7 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
     saveOutliers(req,new FOutliers(outliers))
           
     /* Update cache */
-    RedisCache.addStatus(req,OutlierStatus.FINISHED)
+    cache.addStatus(req,OutlierStatus.FINISHED)
 
    /* Notify potential listeners */
    notify(req,OutlierStatus.FINISHED)

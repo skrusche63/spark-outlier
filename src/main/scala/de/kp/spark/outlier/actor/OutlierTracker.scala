@@ -20,6 +20,7 @@ package de.kp.spark.outlier.actor
 
 import java.util.Date
 
+import de.kp.spark.core.model._
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF, ElasticWriter}

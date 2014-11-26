@@ -18,8 +18,8 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
+import de.kp.spark.core.model._
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.redis.RedisCache
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -72,7 +72,7 @@ class OutlierRegistrar extends BaseActor {
         
             }
  
-            RedisCache.addFields(req, new Fields(fields.toList))
+            cache.addFields(req, new Fields(fields.toList))
         
             new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
         
@@ -100,7 +100,7 @@ class OutlierRegistrar extends BaseActor {
             fields += new Field("item","integer",req.data("item"))
             fields += new Field("price","float",req.data("price"))
             
-            RedisCache.addFields(req, new Fields(fields.toList))
+            cache.addFields(req, new Fields(fields.toList))
         
             new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
         

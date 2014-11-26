@@ -23,6 +23,7 @@ import java.util.Date
 import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.spec.Features
 
+import de.kp.spark.core.model._
 import de.kp.spark.core.redis.RedisClient
 
 import scala.collection.JavaConversions._
@@ -57,25 +58,25 @@ class RedisSink {
     
   }
   
-  def behaviorExists(uid:String):Boolean = {
+  def behaviorExists(req:ServiceRequest):Boolean = {
 
-    val k = "behavior:" + service + ":" + uid
+    val k = "behavior:" + service + ":" + req.data("uid")
     client.exists(k)
     
   }
  
-  def featuresExist(uid:String):Boolean = {
+  def featuresExist(req:ServiceRequest):Boolean = {
 
-    val k = "feature:" + service + ":" + uid
+    val k = "feature:" + service + ":" + req.data("uid")
     client.exists(k)
     
   }
   
-  def features(uid:String):String = {
+  def features(req:ServiceRequest):String = {
 
-    val spec = Features.get(uid)
+    val spec = Features.get(req)
 
-    val k = "feature:" + service + ":" + uid
+    val k = "feature:" + service + ":" + req.data("uid")
     val features = client.zrange(k, 0, -1)
 
     if (features.size() == 0) {
@@ -110,9 +111,9 @@ class RedisSink {
     }
   }
   
-  def behavior(uid:String):String = {
+  def behavior(req:ServiceRequest):String = {
 
-    val k = "rule:" + service + ":" + uid
+    val k = "rule:" + service + ":" + req.data("uid")
     val behavior = client.zrange(k, 0, -1)
 
     if (behavior.size() == 0) {

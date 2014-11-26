@@ -20,9 +20,9 @@ package de.kp.spark.outlier.actor
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
-import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.redis.RedisCache
+import de.kp.spark.core.model._
 
+import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.sink.RedisSink
 
 class OutlierQuestor extends BaseActor {
@@ -43,13 +43,13 @@ class OutlierQuestor extends BaseActor {
 
           val response = {
 
-            if (sink.behaviorExists(uid) == false) {   
+            if (sink.behaviorExists(req) == false) {   
               failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
             } else {       
                 
               /* Retrieve and serialize detected outliers */
-              val outliers = sink.behavior(uid)
+              val outliers = sink.behavior(req)
 
               val data = Map("uid" -> uid, "sequence" -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
@@ -65,13 +65,13 @@ class OutlierQuestor extends BaseActor {
 
           val response = {
 
-            if (sink.featuresExist(uid) == false) {    
+            if (sink.featuresExist(req) == false) {    
               failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
             } else {         
                 
               /* Retrieve and serialize detected outliers */
-                val outliers = sink.features(uid)
+                val outliers = sink.features(req)
 
               val data = Map("uid" -> uid, "feature" -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)

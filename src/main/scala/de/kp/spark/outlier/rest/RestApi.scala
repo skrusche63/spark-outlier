@@ -38,12 +38,11 @@ import scala.concurrent.duration.DurationInt
 
 import scala.util.parsing.json._
 
+import de.kp.spark.core.model._
 import de.kp.spark.core.rest.RestService
 
 import de.kp.spark.outlier.actor.OutlierMaster
 import de.kp.spark.outlier.Configuration
-
-import de.kp.spark.outlier.model._
 
 class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkContext) extends HttpService with Directives {
 
@@ -203,19 +202,6 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
     }
       
     body.asInstanceOf[Map[String,String]]
-    
-  }
-  /**
-   * This method returns the 'raw' body provided with a Http request;
-   * it is e.g. used to access the meta service to register metadata
-   * specifications
-   */
-  private def getBodyAsString(ctx:RequestContext):String = {
-   
-    val httpRequest = ctx.request
-    val httpEntity  = httpRequest.entity    
-
-    httpEntity.data.asString
     
   }
   

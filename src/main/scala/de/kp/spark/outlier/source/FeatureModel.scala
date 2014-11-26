@@ -21,6 +21,8 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.model._
+
 import de.kp.spark.outlier.model.LabeledPoint
 import de.kp.spark.outlier.spec.Features
 
@@ -28,9 +30,9 @@ import scala.collection.mutable.ArrayBuffer
 
 class FeatureModel(@transient sc:SparkContext) extends Serializable {
   
-  def buildElastic(uid:String,rawset:RDD[Map[String,String]]):RDD[LabeledPoint] = {
+  def buildElastic(req:ServiceRequest,rawset:RDD[Map[String,String]]):RDD[LabeledPoint] = {
 
-    val spec = sc.broadcast(Features.get(uid))
+    val spec = sc.broadcast(Features.get(req))
     rawset.map(data => {
       
       val fields = spec.value
@@ -48,7 +50,7 @@ class FeatureModel(@transient sc:SparkContext) extends Serializable {
 
   }
   
-  def buildFile(uid:String,rawset:RDD[String]):RDD[LabeledPoint] = {
+  def buildFile(req:ServiceRequest,rawset:RDD[String]):RDD[LabeledPoint] = {
     
     rawset.map(valu => {
       
@@ -59,9 +61,9 @@ class FeatureModel(@transient sc:SparkContext) extends Serializable {
     
   }
 
-  def buildJDBC(uid:String,rawset:RDD[Map[String,Any]]):RDD[LabeledPoint] = {
+  def buildJDBC(req:ServiceRequest,rawset:RDD[Map[String,Any]]):RDD[LabeledPoint] = {
 
-    val spec = sc.broadcast(Features.get(uid))
+    val spec = sc.broadcast(Features.get(req))
     rawset.map(data => {
       
       val fields = spec.value
