@@ -100,9 +100,7 @@ object Messages extends BaseMessages {
   def OUTLIER_DETECTION_STARTED(uid:String) = String.format("""Outlier detection started for uid '%s'.""", uid)
 
   def OUTLIERS_DO_NOT_EXIST(uid:String):String = String.format("""The outliers for uid '%s' do not exist.""", uid)
-
-  def SEARCH_INDEX_CREATED(uid:String):String = String.format("""Search index created for uid '%s'.""", uid)
-   
+  
 }
 
 object OutlierStatus extends BaseStatus {

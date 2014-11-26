@@ -23,9 +23,10 @@ import java.util.Date
 import akka.actor.{Actor,ActorLogging}
 
 import de.kp.spark.core.model._
+import de.kp.spark.core.io.ElasticIndexer
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF,ElasticIndexer}
+import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.HashMap
