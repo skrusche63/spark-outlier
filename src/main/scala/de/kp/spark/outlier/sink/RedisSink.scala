@@ -26,12 +26,16 @@ import de.kp.spark.outlier.spec.Features
 import de.kp.spark.core.model._
 import de.kp.spark.core.redis.RedisClient
 
+import de.kp.spark.outlier.Configuration
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 class RedisSink {
 
-  val client  = RedisClient()
+  val (host,port) = Configuration.redis
+  val client = RedisClient(host,port.toInt)
+  
   val service = "outlier"
 
   def addFOutliers(req:ServiceRequest, outliers:FOutliers) {

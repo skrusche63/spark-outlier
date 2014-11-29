@@ -22,41 +22,45 @@ import akka.actor.{ActorSystem,Props}
 import com.typesafe.config.ConfigFactory
 
 import de.kp.spark.core.SparkService
-import de.kp.spark.outlier.actor.OutlierMaster
+import de.kp.spark.outlier.api.{AkkaApi,RestApi}
 
 /**
- * The OutlierService supports two different approaches to outlier discovery; one is based 
+ * The OutlierServer supports two different approaches to outlier discovery; one is based 
  * on clustering analysis and determines outlier feature sets due to their distance to the
  * cluster centers. This approach is independent of a certain use case and concentrates on
  * the extraction and evaluation of (equal-size) feature vectors. The other approach to 
  * outlier discovery has a strong focus on the customers purchase behavior and detects those
  * customer that behave different from all other customers.
  */
-object OutlierService {
+object OutlierServer extends SparkService {
+  
+  private val sc = createCtxLocal("IntentContext",Configuration.spark)      
 
   def main(args: Array[String]) {
     
-    val name:String = "outlier-server"
+    /**
+     * REST API 
+     */
+    val httpSystem = ActorSystem("rest-server")
+    sys.addShutdownHook(httpSystem.shutdown)
+    
+    val (host,port) = Configuration.rest
+    new RestApi(host,port,httpSystem,sc).start()
+ 
+    println("REST API activated.")
+    
+    /**
+     * AKKA API 
+     */
     val conf:String = "server.conf"
 
-    val server = new OutlierService(conf, name)
-    while (true) {}
+    val akkaSystem = ActorSystem("akka-server",ConfigFactory.load(conf))
+    sys.addShutdownHook(akkaSystem.shutdown)
     
-    server.shutdown
+    new AkkaApi(akkaSystem,sc).start()
+ 
+    println("AKKA API activated.")
       
   }
 
-}
-
-class OutlierService(conf:String, name:String) extends SparkService {
-
-  val system = ActorSystem(name, ConfigFactory.load(conf))
-  sys.addShutdownHook(system.shutdown)
-  
-  /* Create Spark context */
-  private val sc = createCtxLocal("OutlierContext",Configuration.spark)      
-  val master = system.actorOf(Props(new OutlierMaster(sc)), name="outlier-master")
-
-  def shutdown = system.shutdown()
-  
 }

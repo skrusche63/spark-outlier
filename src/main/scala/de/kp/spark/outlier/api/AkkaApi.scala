@@ -1,4 +1,4 @@
-package de.kp.spark.outlier.rest
+package de.kp.spark.outlier.api
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,27 +18,16 @@ package de.kp.spark.outlier.rest
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import akka.actor.ActorSystem
+import org.apache.spark.SparkContext
+import akka.actor.{ActorSystem,Props}
 
-import de.kp.spark.core.SparkService
-import de.kp.spark.outlier.Configuration
+import de.kp.spark.outlier.actor.OutlierMaster
 
-object RestServer extends SparkService {
-  
-  /* Create Spark context */
-  private val sc = createCtxLocal("OutlierContext",Configuration.spark)      
-  
-  private def start(args:Array[String],system:ActorSystem) {
+class AkkaApi(system:ActorSystem,@transient val sc:SparkContext) {
 
-    val (host,port) = Configuration.rest
-    
-    /* Start REST API */
-    new RestApi(host,port,system,sc).start()
-      
+  val master = system.actorOf(Props(new OutlierMaster(sc)), name="outlier-master")
+
+  def start() {
+     while (true) {}   
   }
-  
-  def main(args: Array[String]) {
-    start(args, ActorSystem("RestServer"))
-  }
-  
 }
