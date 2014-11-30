@@ -57,7 +57,7 @@ class OutlierQuestor extends BaseActor {
             }
           } 
           
-          origin ! Serializer.serializeResponse(response)
+          origin ! response
           context.stop(self)
           
         }
@@ -79,7 +79,7 @@ class OutlierQuestor extends BaseActor {
             }
           
           } 
-          origin ! Serializer.serializeResponse(response)
+          origin ! response
           context.stop(self)
            
         }
@@ -88,7 +88,7 @@ class OutlierQuestor extends BaseActor {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
           
-          origin ! Serializer.serializeResponse(failure(req,msg))
+          origin ! failure(req,msg)
           context.stop(self)
           
         }

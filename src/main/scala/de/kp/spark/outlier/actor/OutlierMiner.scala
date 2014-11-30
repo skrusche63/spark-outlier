@@ -67,9 +67,9 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
           }
 
           response.onSuccess {
-            case result => origin ! {
+            case result => {
               
-              Serializer.serializeResponse(result)
+              origin ! result
               context.stop(self)
               
             }
@@ -77,10 +77,8 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
 
           response.onFailure {
             case throwable => {       
-              
-              val resp = failure(req,throwable.toString)
           
-              origin ! Serializer.serializeResponse(resp)	                  
+              origin ! failure(req,throwable.toString)	                  
               context.stop(self)
               
             }	  
@@ -103,7 +101,7 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
             
           }
            
-          origin ! Serializer.serializeResponse(resp)
+          origin ! resp
           context.stop(self)
           
         }
@@ -112,7 +110,7 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
           
-          origin ! Serializer.serializeResponse(failure(req,msg))
+          origin ! failure(req,msg)
           context.stop(self)
           
         }

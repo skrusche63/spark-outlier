@@ -19,7 +19,7 @@ package de.kp.spark.outlier.actor
 */
 import org.apache.spark.SparkContext
 
-import akka.actor.{Actor,ActorLogging,ActorRef,Props}
+import akka.actor.{ActorRef,Props}
 
 import akka.pattern.ask
 import akka.util.Timeout
@@ -34,7 +34,7 @@ import de.kp.spark.outlier.model._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 
-class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogging {
+class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
   
   val (duration,retries,time) = Configuration.actor   
       
@@ -55,10 +55,10 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
 	  val response = execute(deser)
 	  
       response.onSuccess {
-        case result => origin ! Serializer.serializeResponse(result)
+        case result => origin ! serialize(result)
       }
       response.onFailure {
-        case result => origin ! failure(deser,Messages.GENERAL_ERROR(deser.data("uid")))	      
+        case result => origin ! serialize(failure(deser,Messages.GENERAL_ERROR(deser.data("uid"))))	      
 	  }
       
     }
@@ -69,7 +69,7 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
 
 	  val response = execute(req)
       response.onSuccess {
-        case result => origin ! Serializer.serializeResponse(result)
+        case result => origin ! result
       }
       response.onFailure {
         case result => origin ! failure(req,Messages.GENERAL_ERROR(req.data("uid")))	      
@@ -78,11 +78,9 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
     }
  
     case _ => {
-
-      val origin = sender               
+ 
       val msg = Messages.REQUEST_IS_UNKNOWN()          
-          
-      origin ! Serializer.serializeResponse(failure(null,msg))
+      log.error(msg)
 
     }
     
@@ -127,20 +125,6 @@ class OutlierMaster(@transient val sc:SparkContext) extends Actor with ActorLogg
       
     }
   
-  }
-
-  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
-    
-    if (req == null) {
-      val data = Map("message" -> message)
-      new ServiceResponse("","",data,OutlierStatus.FAILURE)	
-      
-    } else {
-      val data = Map("uid" -> req.data("uid"), "message" -> message)
-      new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
-    
-    }
-    
   }
 
 }

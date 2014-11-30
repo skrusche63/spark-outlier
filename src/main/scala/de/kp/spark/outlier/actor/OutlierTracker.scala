@@ -46,7 +46,7 @@ class OutlierTracker extends BaseActor {
           val data = Map("uid" -> uid, "message" -> Messages.DATA_TO_TRACK_RECEIVED(uid))
           val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)	
       
-          origin ! Serializer.serializeResponse(response)
+          origin ! response
           
           createLabeledPoint(req)
           context.stop(self)
@@ -58,7 +58,7 @@ class OutlierTracker extends BaseActor {
           val data = Map("uid" -> uid, "message" -> Messages.DATA_TO_TRACK_RECEIVED(uid))
           val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)	
       
-          origin ! Serializer.serializeResponse(response)
+          origin ! response
           
           createSequence(req)
           context.stop(self)
@@ -69,7 +69,7 @@ class OutlierTracker extends BaseActor {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
           
-          origin ! Serializer.serializeResponse(failure(req,msg))
+          origin ! failure(req,msg)
           context.stop(self)
           
         }

@@ -61,7 +61,7 @@ class OutlierIndexer extends BaseActor {
             val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)	
       
             val origin = sender
-            origin ! Serializer.serializeResponse(response)
+            origin ! response
             
           } catch {
         
@@ -73,7 +73,7 @@ class OutlierIndexer extends BaseActor {
               val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
       
               val origin = sender
-              origin ! Serializer.serializeResponse(response)
+              origin ! response
           
             }
       
@@ -99,7 +99,7 @@ class OutlierIndexer extends BaseActor {
             val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)	
       
             val origin = sender
-            origin ! Serializer.serializeResponse(response)
+            origin ! response
             
           } catch {
         
@@ -111,7 +111,7 @@ class OutlierIndexer extends BaseActor {
               val response = new ServiceResponse(req.service,req.task,data,OutlierStatus.FAILURE)	
       
               val origin = sender
-              origin ! Serializer.serializeResponse(response)
+              origin ! response
           
             }
       
@@ -127,7 +127,7 @@ class OutlierIndexer extends BaseActor {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
           
-          origin ! Serializer.serializeResponse(failure(req,msg))
+          origin ! failure(req,msg)
           context.stop(self)
           
         }
