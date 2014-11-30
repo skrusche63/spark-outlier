@@ -50,71 +50,37 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
       
       val origin = sender
       val uid = req.data("uid")
+
+      /*
+       * The requests initiates the generation of an outlier model, that
+       * is either represented as the result of a cluster analysis of a
+       * certain feature set or as a transition matrix of customer states. 
+       */
       
-      req.task match {
-        /*
-         * The requests initiates the generation of an outlier model, that
-         * is either represented as the result of a cluster analysis of a
-         * certain feature set or as a transition matrix of customer states. 
-         */
-        case "train" => {
-          
-          val response = validate(req) match {
+      val response = validate(req) match {
             
-            case None => train(req).mapTo[ServiceResponse]            
-            case Some(message) => Future {failure(req,message)}
+        case None => train(req).mapTo[ServiceResponse]            
+        case Some(message) => Future {failure(req,message)}
             
-          }
+      }
 
-          response.onSuccess {
-            case result => {
+      response.onSuccess {
+        case result => {
               
-              origin ! result
-              context.stop(self)
+          origin ! result
+          context.stop(self)
               
-            }
-          }
+        }
+      }
 
-          response.onFailure {
-            case throwable => {       
+      response.onFailure {
+        case throwable => {       
           
-              origin ! failure(req,throwable.toString)	                  
-              context.stop(self)
+          origin ! failure(req,throwable.toString)	                  
+          context.stop(self)
               
-            }	  
+        }	  
           
-          }
-         
-        }
-        /*
-         * There request retrieves the actual status of a certain
-         * training task, and enables the client application to
-         * determine when a 'prediction' request is invoked best.
-         */
-        case "status" => {
-          
-          val resp = if (cache.statusExists(req) == false) {           
-            failure(req,Messages.TASK_DOES_NOT_EXIST(uid))
-            
-          } else {            
-            status(req)
-            
-          }
-           
-          origin ! resp
-          context.stop(self)
-          
-        }
-        
-        case _ => {
-          
-          val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
-          
-          origin ! failure(req,msg)
-          context.stop(self)
-          
-        }
-        
       }
       
     }
@@ -138,15 +104,6 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
     
     ask(actor(req), req)
   
-  }
-
-  private def status(req:ServiceRequest):ServiceResponse = {
-    
-    val uid = req.data("uid")
-    val data = Map("uid" -> uid)
-                
-    new ServiceResponse(req.service,req.task,data,cache.status(req))	
-
   }
 
   private def validate(req:ServiceRequest):Option[String] = {

@@ -36,6 +36,7 @@ import de.kp.spark.outlier.spec.Features
  */
 class FeatureSource(@transient sc:SparkContext) {
 
+  private val config = Configuration
   private val model = new FeatureModel(sc)
   
   def get(req:ServiceRequest):RDD[LabeledPoint] = {
@@ -52,7 +53,7 @@ class FeatureSource(@transient sc:SparkContext) {
        */    
       case Sources.ELASTIC => {
         
-        val rawset = new ElasticSource(sc).connect(req.data)
+        val rawset = new ElasticSource(sc).connect(config,req)
         model.buildElastic(req,rawset)
         
       }
@@ -63,9 +64,7 @@ class FeatureSource(@transient sc:SparkContext) {
        */    
       case Sources.FILE => {
         
-        val path = Configuration.file()._2
-        
-        val rawset = new FileSource(sc).connect(req.data,path)
+        val rawset = new FileSource(sc).connect(config.file(1),req)
         model.buildFile(req,rawset)
         
       }
@@ -78,7 +77,7 @@ class FeatureSource(@transient sc:SparkContext) {
         
         val fields = Features.get(req)
 
-        val rawset = new JdbcSource(sc).connect(req.data,fields)
+        val rawset = new JdbcSource(sc).connect(config,req,fields)
         model.buildJDBC(req,rawset)
 
       }

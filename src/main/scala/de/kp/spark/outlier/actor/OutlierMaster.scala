@@ -94,7 +94,7 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
       case "index" => ask(actor("indexer"),req).mapTo[ServiceResponse]
         
       case "train"  => ask(actor("miner"),req).mapTo[ServiceResponse]
-      case "status" => ask(actor("miner"),req).mapTo[ServiceResponse]
+      case "status" => ask(actor("monitor"),req).mapTo[ServiceResponse]
 
       case "register"  => ask(actor("registrar"),req).mapTo[ServiceResponse]
       case "track" => ask(actor("tracker"),req).mapTo[ServiceResponse]
@@ -114,6 +114,8 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
       case "indexer" => context.actorOf(Props(new OutlierIndexer()))
   
       case "miner" => context.actorOf(Props(new OutlierMiner(sc)))
+  
+      case "monitor" => context.actorOf(Props(new OutlierMonitor()))
         
       case "questor" => context.actorOf(Props(new OutlierQuestor()))
         
