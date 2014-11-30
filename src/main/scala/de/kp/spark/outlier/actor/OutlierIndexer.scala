@@ -23,10 +23,11 @@ import java.util.Date
 import akka.actor.{Actor,ActorLogging}
 
 import de.kp.spark.core.model._
+import de.kp.spark.core.elastic.{ElasticBuilderFactory => EBF}
+
 import de.kp.spark.core.io.ElasticIndexer
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.io.{ElasticBuilderFactory => EBF}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.HashMap
@@ -92,7 +93,7 @@ class OutlierIndexer extends BaseActor {
             val index   = req.data("index")
             val mapping = req.data("type")
     
-            val builder = EBF.getBuilder("item",mapping)
+            val builder = EBF.getBuilder("product",mapping)
             val indexer = new ElasticIndexer()
       
             val data = Map("uid" -> uid, "message" -> Messages.SEARCH_INDEX_CREATED(uid))
