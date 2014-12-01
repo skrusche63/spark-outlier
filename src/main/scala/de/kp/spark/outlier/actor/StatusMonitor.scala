@@ -18,7 +18,7 @@ package de.kp.spark.outlier.actor
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-import de.kp.spark.core.actor.StatusMonitor
+import de.kp.spark.core.actor.StatusQuestor
 import de.kp.spark.outlier.Configuration
 
-class OutlierMonitor extends StatusMonitor(Configuration)
+class StatusMonitor extends StatusQuestor(Configuration)

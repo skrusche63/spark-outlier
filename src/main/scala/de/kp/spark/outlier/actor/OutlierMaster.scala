@@ -90,11 +90,13 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
 	  
     req.task.split(":")(0) match {
         
+      case "fields" => ask(actor("fields"),req).mapTo[ServiceResponse]
+      
       case "get" => ask(actor("questor"),req).mapTo[ServiceResponse]
       case "index" => ask(actor("indexer"),req).mapTo[ServiceResponse]
         
       case "train"  => ask(actor("miner"),req).mapTo[ServiceResponse]
-      case "status" => ask(actor("monitor"),req).mapTo[ServiceResponse]
+      case "status" => ask(actor("status"),req).mapTo[ServiceResponse]
 
       case "register"  => ask(actor("registrar"),req).mapTo[ServiceResponse]
       case "track" => ask(actor("tracker"),req).mapTo[ServiceResponse]
@@ -111,11 +113,13 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
     
     worker match {
   
+      case "fields" => context.actorOf(Props(new FieldMonitor()))
+  
       case "indexer" => context.actorOf(Props(new OutlierIndexer()))
   
       case "miner" => context.actorOf(Props(new OutlierMiner(sc)))
   
-      case "monitor" => context.actorOf(Props(new OutlierMonitor()))
+      case "status" => context.actorOf(Props(new StatusMonitor()))
         
       case "questor" => context.actorOf(Props(new OutlierQuestor()))
         
