@@ -72,7 +72,7 @@ class OutlierRegistrar extends BaseActor {
         
             }
  
-            cache.addFields(req, new Fields(fields.toList))
+            cache.addFields(req, fields.toList)
         
             new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
         
@@ -100,7 +100,7 @@ class OutlierRegistrar extends BaseActor {
             fields += new Field("item","integer",req.data("item"))
             fields += new Field("price","float",req.data("price"))
             
-            cache.addFields(req, new Fields(fields.toList))
+            cache.addFields(req, fields.toList)
         
             new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
         
