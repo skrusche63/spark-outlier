@@ -18,6 +18,9 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
+import de.kp.spark.core.Names
+import de.kp.spark.core.spec.FieldBuilder
+
 import de.kp.spark.core.model._
 import de.kp.spark.outlier.model._
 
@@ -32,13 +35,13 @@ class OutlierRegistrar extends BaseActor {
     case req:ServiceRequest => {
       
       val origin = sender
-      val uid = req.data("uid")
+      val uid = req.data(Names.REQ_UID)
       
-      req.task match {
+      val response = try {
+
+        req.task.split(":")(1) match {
         
-        case "register:feature" => {
-      
-          val response = try {
+          case "feature" => {
         
             /* Unpack fields from request and register in Redis instance */
             val fields = ArrayBuffer.empty[Field]
@@ -72,56 +75,36 @@ class OutlierRegistrar extends BaseActor {
         
             }
  
-            cache.addFields(req, fields.toList)
+            cache.addFields(req, fields.toList)        
+            new ServiceResponse(req.service,req.task,Map(Names.REQ_UID-> uid),OutlierStatus.SUCCESS)
+         
+          } 
         
-            new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
+          case "sequence" => {
         
-          } catch {
-            case throwable:Throwable => failure(req,throwable.getMessage)
-          }
-      
-          origin ! response
+            val fields = new FieldBuilder().build(req,"product")
+            cache.addFields(req, fields)
+        
+            new ServiceResponse(req.service,req.task,Map(Names.REQ_UID-> uid),OutlierStatus.SUCCESS)
           
-        } 
-        
-        case "register:sequence" => {
-      
-          val response = try {
-        
-            /* Unpack fields from request and register in Redis instance */
-            val fields = ArrayBuffer.empty[Field]
-
-            fields += new Field("site","string",req.data("site"))
-            fields += new Field("timestamp","long",req.data("timestamp"))
-
-            fields += new Field("user","string",req.data("user"))
-            fields += new Field("group","string",req.data("group"))
-
-            fields += new Field("item","integer",req.data("item"))
-            fields += new Field("price","float",req.data("price"))
-            
-            cache.addFields(req, fields.toList)
-        
-            new ServiceResponse("outlier","register",Map("uid"-> uid),OutlierStatus.SUCCESS)
-        
-          } catch {
-            case throwable:Throwable => failure(req,throwable.getMessage)
           }
-      
-          origin ! response
+        
+          case _ => {
           
+            val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
+            failure(req,msg)
+          
+          }
+        
         }
         
-        case _ => {
-          
-          val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
-          
-          origin ! failure(req,msg)
-          context.stop(self)
-          
-        }
-        
+      } catch {
+        case throwable:Throwable => failure(req,throwable.getMessage)
       }
+      
+      origin ! response
+      context.stop(self)      
+      
     }
   
   }
