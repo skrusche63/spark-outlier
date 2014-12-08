@@ -55,6 +55,9 @@ object Algorithms {
   
   val KMEANS:String = "KMEANS"
   val MARKOV:String = "MARKOV"
+
+  private def algorithms = List(KMEANS,MARKOV)  
+  def isAlgorithm(algorithm:String):Boolean = algorithms.contains(algorithm)
     
 }
 
@@ -63,7 +66,11 @@ object Sources {
   val FILE:String    = "FILE"
   val ELASTIC:String = "ELASTIC" 
   val JDBC:String    = "JDBC"    
-  val PIWIK:String   = "PIWIK"    
+  val PIWIK:String   = "PIWIK"   
+    
+  private val sources = List(FILE,ELASTIC,JDBC,PIWIK)
+  def isSource(source:String):Boolean = sources.contains(source)
+    
 }
 
 object Serializer extends BaseSerializer {
@@ -88,8 +95,6 @@ object Serializer extends BaseSerializer {
 }
 
 object Messages extends BaseMessages {
- 
-  def DATA_TO_TRACK_RECEIVED(uid:String):String = String.format("""Data to track received for uid '%s'.""", uid)
  
   def MISSING_PARAMETERS(uid:String):String = String.format("""Parameters are missing for uid '%s'.""", uid)
 

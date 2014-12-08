@@ -20,6 +20,7 @@ package de.kp.spark.outlier.actor
 
 import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 
+import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
 import de.kp.spark.outlier.model._
@@ -37,31 +38,9 @@ class OutlierQuestor extends BaseActor {
       val origin = sender
       val uid = req.data("uid")
       
-      req.task match {
-        
-        case "get:sequence" => {
-
-          val response = {
-
-            if (sink.behaviorExists(req) == false) {   
-              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
-            
-            } else {       
-                
-              /* Retrieve and serialize detected outliers */
-              val outliers = sink.behavior(req)
-
-              val data = Map("uid" -> uid, "sequence" -> outliers)            
-              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
-            
-            }
-          } 
-          
-          origin ! response
-          context.stop(self)
-          
-        }
-        case "get:feature" => {
+      val Array(task,topic) = req.task.split(":")
+      topic match {
+        case "feature" => {
 
           val response = {
 
@@ -70,10 +49,9 @@ class OutlierQuestor extends BaseActor {
             
             } else {         
                 
-              /* Retrieve and serialize detected outliers */
-                val outliers = sink.features(req)
+              val outliers = sink.features(req)
 
-              val data = Map("uid" -> uid, "feature" -> outliers)            
+              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
              
             }
@@ -82,6 +60,27 @@ class OutlierQuestor extends BaseActor {
           origin ! response
           context.stop(self)
            
+        }
+        case "product" => {
+
+          val response = {
+
+            if (sink.behaviorExists(req) == false) {   
+              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            
+            } else {       
+                
+              val outliers = sink.behavior(req)
+
+              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
+              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
+            
+            }
+          } 
+          
+          origin ! response
+          context.stop(self)
+          
         }
         
         case _ => {

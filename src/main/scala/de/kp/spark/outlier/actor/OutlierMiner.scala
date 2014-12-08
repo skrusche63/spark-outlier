@@ -25,6 +25,8 @@ import akka.actor.{ActorRef,Props}
 import akka.pattern.ask
 import akka.util.Timeout
 
+import de.kp.spark.core.Names
+
 import de.kp.spark.core.model._
 import de.kp.spark.outlier.Configuration
 
@@ -37,31 +39,31 @@ import scala.concurrent.duration.DurationInt
  * The focus of the OutlierMiner is on the model building task,
  * either for cluster analysis based tasks or markov based states.
  */
-class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
+class OutlierMiner(@transient sc:SparkContext) extends BaseActor {
 
   implicit val ec = context.dispatcher
-  
-  private val algorithms = Array(Algorithms.KMEANS,Algorithms.MARKOV)
-  private val sources = Array(Sources.FILE,Sources.ELASTIC,Sources.JDBC,Sources.PIWIK)
   
   def receive = {
     
     case req:ServiceRequest => {
       
       val origin = sender
-      val uid = req.data("uid")
-
       /*
        * The requests initiates the generation of an outlier model, that
        * is either represented as the result of a cluster analysis of a
        * certain feature set or as a transition matrix of customer states. 
        */
-      
-      val response = validate(req) match {
+      val response = try {
+
+        validate(req) match {
             
-        case None => train(req).mapTo[ServiceResponse]            
-        case Some(message) => Future {failure(req,message)}
+          case None => train(req).mapTo[ServiceResponse]            
+          case Some(message) => Future {failure(req,message)}
             
+        }
+        
+      } catch {
+        case e:Exception => Future {failure(req,e.getMessage)}
       }
 
       response.onSuccess {
@@ -108,7 +110,7 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
 
   private def validate(req:ServiceRequest):Option[String] = {
 
-    val uid = req.data("uid")
+    val uid = req.data(Names.REQ_UID)
  
     if (cache.statusExists(req)) {            
       val message = Messages.TASK_ALREADY_STARTED(uid)
@@ -116,14 +118,14 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
     
     }
     
-    req.data.get("algorithm") match {
+    req.data.get(Names.REQ_ALGORITHM) match {
         
       case None => {
         return Some(Messages.NO_ALGORITHM_PROVIDED(uid))              
       }
         
       case Some(algorithm) => {
-        if (algorithms.contains(algorithm) == false) {
+        if (Algorithms.isAlgorithm(algorithm) == false) {
           return Some(Messages.ALGORITHM_IS_UNKNOWN(uid,algorithm))    
         }
           
@@ -138,7 +140,7 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
       }
         
       case Some(source) => {
-        if (sources.contains(source) == false) {
+        if (Sources.isSource(source) == false) {
           return Some(Messages.SOURCE_IS_UNKNOWN(uid,source))    
         }          
       }
@@ -156,7 +158,7 @@ class OutlierMiner(@transient val sc:SparkContext) extends BaseActor {
    */
   private def actor(req:ServiceRequest):ActorRef = {
 
-    val algorithm = req.data("algorithm")
+    val algorithm = req.data(Names.REQ_ALGORITHM)
     if (algorithm == Algorithms.KMEANS) {      
       context.actorOf(Props(new KMeansActor(sc)))      
     

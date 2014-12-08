@@ -26,6 +26,9 @@ import akka.util.Timeout
 
 import akka.actor.{OneForOneStrategy, SupervisorStrategy}
 
+import de.kp.spark.core.Names
+
+import de.kp.spark.core.actor._
 import de.kp.spark.core.model._
 
 import de.kp.spark.outlier.Configuration
@@ -34,7 +37,7 @@ import de.kp.spark.outlier.model._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 
-class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
+class OutlierMaster(@transient sc:SparkContext) extends BaseActor {
   
   val (duration,retries,time) = Configuration.actor   
       
@@ -47,18 +50,18 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
 
   def receive = {
     
-    case req:String => {
+    case msg:String => {
 	  	    
 	  val origin = sender
 
-	  val deser = Serializer.deserializeRequest(req)
-	  val response = execute(deser)
+	  val req = Serializer.deserializeRequest(msg)
+	  val response = execute(req)
 	  
       response.onSuccess {
         case result => origin ! serialize(result)
       }
       response.onFailure {
-        case result => origin ! serialize(failure(deser,Messages.GENERAL_ERROR(deser.data("uid"))))	      
+        case result => origin ! serialize(failure(req,Messages.GENERAL_ERROR(req.data(Names.REQ_UID))))	      
 	  }
       
     }
@@ -72,7 +75,7 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
         case result => origin ! result
       }
       response.onFailure {
-        case result => origin ! failure(req,Messages.GENERAL_ERROR(req.data("uid")))	      
+        case result => origin ! failure(req,Messages.GENERAL_ERROR(req.data(Names.REQ_UID)))	      
 	  }
       
     }
@@ -87,24 +90,18 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
   }
 
   private def execute(req:ServiceRequest):Future[ServiceResponse] = {
-	  
-    req.task.split(":")(0) match {
-        
-      case "fields" => ask(actor("fields"),req).mapTo[ServiceResponse]
+	
+    try {
       
-      case "get" => ask(actor("questor"),req).mapTo[ServiceResponse]
-      case "index" => ask(actor("indexer"),req).mapTo[ServiceResponse]
-        
-      case "train"  => ask(actor("miner"),req).mapTo[ServiceResponse]
-      case "status" => ask(actor("status"),req).mapTo[ServiceResponse]
-
-      case "register"  => ask(actor("registrar"),req).mapTo[ServiceResponse]
-      case "track" => ask(actor("tracker"),req).mapTo[ServiceResponse]
-       
-      case _ => Future {          
-        failure(req,Messages.TASK_IS_UNKNOWN(req.data("uid"),req.task))
+      val Array(task,topic) = req.task.split(":")
+      ask(actor(task),req).mapTo[ServiceResponse]
+    
+    } catch {
+      
+      case e:Exception => {
+        Future {failure(req,e.getMessage)}         
       }
-      
+    
     }
     
   }
@@ -112,20 +109,29 @@ class OutlierMaster(@transient val sc:SparkContext) extends BaseActor {
   private def actor(worker:String):ActorRef = {
     
     worker match {
-  
-      case "fields" => context.actorOf(Props(new FieldMonitor()))
-  
-      case "indexer" => context.actorOf(Props(new OutlierIndexer()))
-  
-      case "miner" => context.actorOf(Props(new OutlierMiner(sc)))
-  
-      case "status" => context.actorOf(Props(new StatusMonitor()))
+      /*
+       * Metadata management is part of the core functionality; field or metadata
+       * specifications can be registered in, and retrieved from a Redis database.
+       */
+      case "fields"   => context.actorOf(Props(new FieldQuestor(Configuration)))
+      case "register" => context.actorOf(Props(new OutlierRegistrar()))
+      /*
+       * Index management is part of the core functionality; an Elasticsearch 
+       * index can be created and appropriate (tracked) items can be saved.
+       */  
+      case "index" => context.actorOf(Props(new BaseIndexer(Configuration)))
+      case "track" => context.actorOf(Props(new BaseTracker(Configuration)))
+      /*
+       * Request the actual status of an association rule mining 
+       * task; note, that get requests should only be invoked after 
+       * having retrieved a FINISHED status.
+       * 
+       * Status management is part of the core functionality.
+       */
+      case "status" => context.actorOf(Props(new StatusQuestor(Configuration)))
         
-      case "questor" => context.actorOf(Props(new OutlierQuestor()))
-        
-      case "registrar" => context.actorOf(Props(new OutlierRegistrar()))
-        
-      case "tracker" => context.actorOf(Props(new OutlierTracker()))
+      case "get"   => context.actorOf(Props(new OutlierQuestor()))
+      case "train" => context.actorOf(Props(new OutlierMiner(sc)))
       
       case _ => null
       
