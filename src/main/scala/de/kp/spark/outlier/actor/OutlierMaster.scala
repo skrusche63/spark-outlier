@@ -17,96 +17,18 @@ package de.kp.spark.outlier.actor
 * 
 * If not, see <http://www.gnu.org/licenses/>.
 */
+
 import org.apache.spark.SparkContext
-
 import akka.actor.{ActorRef,Props}
-
-import akka.pattern.ask
-import akka.util.Timeout
-
-import akka.actor.{OneForOneStrategy, SupervisorStrategy}
-
-import de.kp.spark.core.Names
 
 import de.kp.spark.core.actor._
 import de.kp.spark.core.model._
 
 import de.kp.spark.outlier.Configuration
-import de.kp.spark.outlier.model._
 
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.Future
-
-class OutlierMaster(@transient sc:SparkContext) extends BaseActor {
+class OutlierMaster(@transient sc:SparkContext) extends BaseMaster(Configuration) {
   
-  val (duration,retries,time) = Configuration.actor   
-      
-  implicit val ec = context.dispatcher
-  implicit val timeout:Timeout = DurationInt(time).second
-
-  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries=retries,withinTimeRange = DurationInt(duration).minutes) {
-    case _ : Exception => SupervisorStrategy.Restart
-  }
-
-  def receive = {
-    
-    case msg:String => {
-	  	    
-	  val origin = sender
-
-	  val req = Serializer.deserializeRequest(msg)
-	  val response = execute(req)
-	  
-      response.onSuccess {
-        case result => origin ! serialize(result)
-      }
-      response.onFailure {
-        case result => origin ! serialize(failure(req,Messages.GENERAL_ERROR(req.data(Names.REQ_UID))))	      
-	  }
-      
-    }
-     
-    case req:ServiceRequest => {
-	  	    
-	  val origin = sender
-
-	  val response = execute(req)
-      response.onSuccess {
-        case result => origin ! result
-      }
-      response.onFailure {
-        case result => origin ! failure(req,Messages.GENERAL_ERROR(req.data(Names.REQ_UID)))	      
-	  }
-      
-    }
- 
-    case _ => {
- 
-      val msg = Messages.REQUEST_IS_UNKNOWN()          
-      log.error(msg)
-
-    }
-    
-  }
-
-  private def execute(req:ServiceRequest):Future[ServiceResponse] = {
-	
-    try {
-      
-      val Array(task,topic) = req.task.split(":")
-      ask(actor(task),req).mapTo[ServiceResponse]
-    
-    } catch {
-      
-      case e:Exception => {
-        Future {failure(req,e.getMessage)}         
-      }
-    
-    }
-    
-  }
-  
-  private def actor(worker:String):ActorRef = {
+  protected def actor(worker:String):ActorRef = {
     
     worker match {
       /*
