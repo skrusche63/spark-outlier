@@ -150,23 +150,48 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
   
   }
   /**
-   * 'fields' and 'register' requests refer to the metadata management 
-   * of the Outlier Detection engine; for a certain task (uid) and 
-   * a specific model (name), a specification of the respective data fields 
-   * can be registered and retrieved from a Redis database.
+   * 'fields' and 'register' requests refer to the metadata management; 
+   * for a certain task (uid) and a specific model (name), a specification 
+   * of the respective data fields can be registered and retrieved from a 
+   * Redis database.
+   * 
+   * Request parameters for the 'fields' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
    */
   private def doFields[T](ctx:RequestContext) = doRequest(ctx,service,"fields")
-
+  /**
+   * Request parameters for the 'register' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   * The information element, 'feature' or 'product' determines how to proceed:
+   * 
+   * topic: feature
+   * 
+   * - names (String, comma separated list of feature names)
+   * - types (String, comma separated list of feature types)
+   * 
+   * topic:product
+   * 
+   * - user (String)
+   * - timestamp (String) 
+   * - group (String)
+   * - item (Integer)
+   * - price (Float)
+   * 
+   */    
   private def doRegister[T](ctx:RequestContext,subject:String) = {
  
-    subject match {
-
-      case "feature" => doRequest(ctx,service,"register:feature")      
-	  case "product" => doRequest(ctx,service,"register:product")
-	      
-	  case _ => {}
-	  
-    }
+    val task = "register:" + subject
+    
+    val topics = List("feature","product")
+    if (topics.contains(subject)) doRequest(ctx,service,task)
 
   }
   
@@ -174,71 +199,146 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
    * 'index' & 'track' requests support data registration in an Elasticsearch
    * index; while items are can be provided via the REST interface, rules are
    * built by the Outlier Detection engine and then registered in the index.
+   * 
+   * Request parameters for the 'index' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   * - source (String)
+   * - type (String)
+   * 
+   * The information element, 'feature' or 'product' determines how to proceed:
+   * 
+   * topic: feature
+   * 
+   * - names (String, comma separated list of feature names)
+   * - types (String, comma separated list of feature types)
+   * 
+   * topic: product
    */
-
   private def doIndex[T](ctx:RequestContext,subject:String) = {
-	    
-    subject match {
 
-      case "feature" => doRequest(ctx,service,"index:feature")
-	  case "product" => doRequest(ctx,service,"index:product")
-	      
-	  case _ => {}
-	  
-    }
+    val task = "index:" + subject
+    
+    val topics = List("feature","product")
+    if (topics.contains(subject)) doRequest(ctx,service,task)
     
   }
-
+  /**
+   * Request parameters for the 'track' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   * - source (String)
+   * - type (String)
+   * 
+   * The information element, 'feature' or 'sequence' determines how to proceed:
+   * 
+   * topic: feature
+   * 
+   * - lbl. xxx (String, target value)
+   * - fea. xxx (Double, predictor value) 
+   * 
+   * topic:product
+   * 
+   * - user (String)
+   * - timestamp (Long)
+   * - group (String)
+   * - item (Integer)
+   * - price (Float)
+   * 
+   */   
   private def doTrack[T](ctx:RequestContext,subject:String) = {
-	    
-    subject match {
 
-      case "feature" => doRequest(ctx,service,"track:feature")
-	  case "product" => doRequest(ctx,service,"track:product")
-	      
-	  case _ => {}
-	  
-    }
+    val task = "track:" + subject
+    
+    val topics = List("feature","product")
+    if (topics.contains(subject)) doRequest(ctx,service,task)
     
   }
   /**
    * 'status' is an administration request to determine whether a certain data
-   * mining task has been finished or not; the only parameter required for status 
-   * requests is the unique identifier of a certain task
+   * mining task has been finished or not.
+   * 
+   * Request parameters for the 'status' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * 
    */
   private def doStatus[T](ctx:RequestContext,subject:String) = {
     
-    subject match {
-      /*
-       * Retrieve the 'latest' status information about a certain
-       * data mining or model building task.
-       */
-      case "latest" => doRequest(ctx,service,"status:latest")
-      /*
-       * Retrieve 'all' stati assigned to a certain data mining
-       * or model building task.
-       */
-      case "all" => doRequest(ctx,service,"status:all")
-      
-      case _ => {/* do nothing */}
-    
-    }
+    val task = "status:" + subject
+    /*
+     * The following topics are supported:
+     * 
+     * Retrieve the 'latest' status information about a certain
+     * data mining or model building task.
+     * 
+     * Retrieve 'all' stati assigned to a certain data mining
+     * or model building task.
+     * 
+     */
+    val topics = List("latest","all")
+    if (topics.contains(subject)) doRequest(ctx,service,task)
   
   }
-
+  /**
+   * Request parameters for the 'get' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   */  
   private def doGet[T](ctx:RequestContext,subject:String) = {
- 	    
-    subject match {
 
-      case "feature" => doRequest(ctx,service,"get:feature")      
-	  case "product" => doRequest(ctx,service,"get:product")
-	      
-	  case _ => {}
-	  
-    }
+    val task = "get:" + subject
+    
+    val topics = List("feature","product")
+    if (topics.contains(subject)) doRequest(ctx,service,task)
 
   }
-
+  /**
+   * Request parameters for the 'train' request
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   * - algorithm (String, KMEANS, MARKOV)
+   * - source (String, ELASTIC, FILE, JDBC)
+   * 
+   * and the following parameters depend on the selected source:
+   * 
+   * ELASTIC:
+   * 
+   * - source.index (String)
+   * - source.type (String)
+   * - query (String)
+   * 
+   * JDBC:
+   * 
+   * - query (String)
+   * 
+   * and the model building parameters have to be distinguished by the
+   * selected algorithm
+   * 
+   * KMEANS:
+   * 
+   * - top (Integer)
+   * - strategy (String, distance, entropy)
+   * 
+   * MARKOV:
+   *  
+   * - strategy (String, missprob, missrate, entreduc)
+   * - threshold (Double)
+   * 
+   */
   private def doTrain[T](ctx:RequestContext) = doRequest(ctx,service,"train")
   
   private def doRequest[T](ctx:RequestContext,service:String,task:String) = {

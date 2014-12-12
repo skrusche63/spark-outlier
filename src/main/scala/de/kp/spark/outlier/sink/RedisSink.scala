@@ -20,6 +20,8 @@ package de.kp.spark.outlier.sink
 
 import java.util.Date
 
+import de.kp.spark.core.Names
+
 import de.kp.spark.outlier.model._
 import de.kp.spark.outlier.spec.Features
 
@@ -43,7 +45,7 @@ class RedisSink {
     val now = new Date()
     val timestamp = now.getTime()
     
-    val k = "feature:" + service + ":" + req.data("uid")
+    val k = "feature:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     val v = "" + timestamp + ":" + Serializer.serializeFOutliers(outliers)
     
     client.zadd(k,timestamp,v)
@@ -55,7 +57,7 @@ class RedisSink {
     val now = new Date()
     val timestamp = now.getTime()
     
-    val k = "behavior:" + service + ":" + req.data("uid")
+    val k = "behavior:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     val v = "" + timestamp + ":" + Serializer.serializeBOutliers(outliers)
     
     client.zadd(k,timestamp,v)
@@ -64,14 +66,14 @@ class RedisSink {
   
   def behaviorExists(req:ServiceRequest):Boolean = {
 
-    val k = "behavior:" + service + ":" + req.data("uid")
+    val k = "behavior:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     client.exists(k)
     
   }
  
   def featuresExist(req:ServiceRequest):Boolean = {
 
-    val k = "feature:" + service + ":" + req.data("uid")
+    val k = "feature:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     client.exists(k)
     
   }
@@ -80,7 +82,7 @@ class RedisSink {
 
     val spec = Features.get(req)
 
-    val k = "feature:" + service + ":" + req.data("uid")
+    val k = "feature:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     val features = client.zrange(k, 0, -1)
 
     if (features.size() == 0) {
@@ -117,7 +119,7 @@ class RedisSink {
   
   def behavior(req:ServiceRequest):String = {
 
-    val k = "rule:" + service + ":" + req.data("uid")
+    val k = "behavior:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     val behavior = client.zrange(k, 0, -1)
 
     if (behavior.size() == 0) {

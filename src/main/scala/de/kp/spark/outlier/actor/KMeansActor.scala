@@ -21,6 +21,7 @@ package de.kp.spark.outlier.actor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
 import de.kp.spark.outlier.KMeansDetector
@@ -30,7 +31,7 @@ import de.kp.spark.outlier.source.FeatureSource
 
 import de.kp.spark.outlier.sink.RedisSink
 
-class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
+class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
   def receive = {
 
@@ -45,7 +46,7 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
  
         try {
 
-          cache.addStatus(req,OutlierStatus.STARTED)
+          cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
           
           val dataset = new FeatureSource(sc).get(req)          
           findOutliers(req,dataset,params)
@@ -73,8 +74,8 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
       
     try {
       
-      val k = req.data("k").asInstanceOf[Int]
-      val strategy = req.data("strategy").asInstanceOf[String]
+      val k = req.data(Names.REQ_K).asInstanceOf[Int]
+      val strategy = req.data(Names.REQ_STRATEGY).asInstanceOf[String]
         
       return (k,strategy)
         
@@ -97,10 +98,10 @@ class KMeansActor(@transient val sc:SparkContext) extends BaseActor {
     saveOutliers(req,new FOutliers(outliers))
           
     /* Update cache */
-    cache.addStatus(req,OutlierStatus.FINISHED)
+    cache.addStatus(req,OutlierStatus.TRAINING_FINISHED)
 
    /* Notify potential listeners */
-   notify(req,OutlierStatus.FINISHED)
+   notify(req,OutlierStatus.TRAINING_FINISHED)
     
   }
   

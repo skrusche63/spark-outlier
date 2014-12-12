@@ -21,6 +21,7 @@ package de.kp.spark.outlier.actor
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
 import de.kp.spark.outlier.model._
@@ -31,18 +32,18 @@ import de.kp.spark.outlier.markov.TransitionMatrix
 import de.kp.spark.outlier.source.{BehaviorSource}
 import de.kp.spark.outlier.sink.RedisSink
 
-class MarkovActor(@transient val sc:SparkContext) extends BaseActor {
+class MarkovActor(@transient sc:SparkContext) extends BaseActor {
 
   def receive = {
 
     case req:ServiceRequest => {
       
       val params = properties(req)
+      val missing = (params == null)
 
-      /* Send response to originator of request */
-      sender ! response(req, (params == null))
+      sender ! response(req, missing)
 
-      if (params != null) {
+      if (missing == false) {
         /* Register status */
         cache.addStatus(req,OutlierStatus.STARTED)
  
@@ -75,8 +76,8 @@ class MarkovActor(@transient val sc:SparkContext) extends BaseActor {
       
     try {
       
-      val threshold = req.data("threshold").asInstanceOf[Double]
-      val strategy  = req.data("algorithm").asInstanceOf[String]
+      val threshold = req.data(Names.REQ_THRESHOLD).asInstanceOf[Double]
+      val strategy  = req.data(Names.REQ_STRATEGY).asInstanceOf[String]
          
       return (strategy,threshold)
         
@@ -97,8 +98,8 @@ class MarkovActor(@transient val sc:SparkContext) extends BaseActor {
     val model = detector.train(sequences)
     cache.addStatus(req,OutlierStatus.TRAINED)
          
-    val (algorithm,threshold) = params          
-    val outliers = detector.detect(sequences,algorithm,threshold,model).collect().toList
+    val (strategy,threshold) = params          
+    val outliers = detector.detect(sequences,strategy,threshold,model).collect().toList
           
     saveOutliers(req,new BOutliers(outliers))
           
