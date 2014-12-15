@@ -80,6 +80,25 @@ class FeatureModel(@transient sc:SparkContext) extends Serializable {
     })
     
   }
-     
+
+  def buildParquet(req:ServiceRequest,rawset:RDD[Map[String,Any]]):RDD[LabeledPoint] = {
+
+    val spec = sc.broadcast(Features.get(req))
+    rawset.map(data => {
+      
+      val fields = spec.value
+
+      val label = data(fields.head).asInstanceOf[String]
+      val features = ArrayBuffer.empty[Double]
+      
+      for (field <- fields.tail) {
+        features += data(field).asInstanceOf[Double]
+      }
+      
+      new LabeledPoint(label,features.toArray)
+      
+    })
+    
+  }
 
 }

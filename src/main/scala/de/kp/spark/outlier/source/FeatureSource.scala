@@ -21,8 +21,10 @@ package de.kp.spark.outlier.source
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import de.kp.spark.core.Names
 import de.kp.spark.core.model._
-import de.kp.spark.core.source.{ElasticSource,FileSource,JdbcSource}
+
+import de.kp.spark.core.source._
 import de.kp.spark.outlier.Configuration
 
 import de.kp.spark.outlier.model._
@@ -41,9 +43,9 @@ class FeatureSource(@transient sc:SparkContext) {
   
   def get(req:ServiceRequest):RDD[LabeledPoint] = {
 
-    val uid = req.data("uid")
+    val uid = req.data(Names.REQ_UID)
     
-    val source = req.data("source")
+    val source = req.data(Names.REQ_SOURCE)
     source match {
       
       /* 
@@ -64,7 +66,7 @@ class FeatureSource(@transient sc:SparkContext) {
        */    
       case Sources.FILE => {
         
-        val rawset = new FileSource(sc).connect(config.file(1),req)
+        val rawset = new FileSource(sc).connect(config.input(1),req)
         model.buildFile(req,rawset)
         
       }
@@ -79,6 +81,18 @@ class FeatureSource(@transient sc:SparkContext) {
 
         val rawset = new JdbcSource(sc).connect(config,req,fields)
         model.buildJDBC(req,rawset)
+
+      }
+     /*
+       * Discover outliers from feature set persisted as a parquet file on HDFS; 
+       * the configuration parameters are retrieved from the service configuration
+       */
+      case Sources.PARQUET => {
+        
+        val fields = Features.get(req)
+
+        val rawset = new ParquetSource(sc).connect(config.input(0),req,fields)
+        model.buildParquet(req,rawset)
 
       }
       

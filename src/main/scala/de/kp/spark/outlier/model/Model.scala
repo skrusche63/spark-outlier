@@ -66,9 +66,9 @@ object Sources {
   val FILE:String    = "FILE"
   val ELASTIC:String = "ELASTIC" 
   val JDBC:String    = "JDBC"    
-  val PIWIK:String   = "PIWIK"   
+  val PARQUET:String = "PARQUET"   
     
-  private val sources = List(FILE,ELASTIC,JDBC,PIWIK)
+  private val sources = List(FILE,ELASTIC,JDBC,PARQUET)
   def isSource(source:String):Boolean = sources.contains(source)
     
 }

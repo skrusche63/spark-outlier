@@ -139,6 +139,30 @@ class BehaviorModel(@transient sc:SparkContext) extends StateSpec with Serializa
     buildStates(sequences)
     
   }
+
+  def buildParquet(req:ServiceRequest,rawset:RDD[Map[String,Any]]):RDD[Behavior] = {
+     
+    val fieldspec = Sequences.get(req)
+    val spec = sc.broadcast(fieldspec)
+    val dataset = rawset.map(data => {
+      
+      val site = data(spec.value("site")._1).asInstanceOf[String]
+      val timestamp = data(spec.value("timestamp")._1).asInstanceOf[Long]
+
+      val user = data(spec.value("user")._1).asInstanceOf[String] 
+      val group = data(spec.value("group")._1).asInstanceOf[String]
+      
+      val item  = data(spec.value("item")._1).asInstanceOf[String]
+      val price  = data(spec.value("price")._1).asInstanceOf[Float]
+      
+      (site,user,group,timestamp,item,price)
+      
+    })
+    
+    val sequences = buildSequences(dataset)
+    buildStates(sequences)
+    
+  }
   
   private def buildSequences(rawset:RDD[(String,String,String,Long,String,Float)]):RDD[Sequence] = {
     

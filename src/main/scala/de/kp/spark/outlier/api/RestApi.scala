@@ -115,6 +115,17 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
 	  }
     }  ~ 
     /*
+     * A 'params' request supports the retrieval of the parameters
+     * used for a certain model training task
+     */
+    path("params") {  
+	  post {
+	    respondWithStatus(OK) {
+	      ctx => doParams(ctx)
+	    }
+	  }
+    }  ~ 
+    /*
      * A 'status' request supports the retrieval of the status
      * with respect to a certain training task (uid). The latest
      * status or all stati of a certain task are returned.
@@ -311,7 +322,7 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
    * - name (String)
    * 
    * - algorithm (String, KMEANS, MARKOV)
-   * - source (String, ELASTIC, FILE, JDBC)
+   * - source (String, ELASTIC, FILE, JDBC, PARQUET)
    * 
    * and the following parameters depend on the selected source:
    * 
@@ -340,6 +351,15 @@ class RestApi(host:String,port:Int,system:ActorSystem,@transient val sc:SparkCon
    * 
    */
   private def doTrain[T](ctx:RequestContext) = doRequest(ctx,service,"train")
+  /**
+   * Request parameters for the 'params' request:
+   * 
+   * - site (String)
+   * - uid (String)
+   * - name (String)
+   * 
+   */
+  private def doParams[T](ctx:RequestContext) = doRequest(ctx,service,"params")
   
   private def doRequest[T](ctx:RequestContext,service:String,task:String) = {
      
