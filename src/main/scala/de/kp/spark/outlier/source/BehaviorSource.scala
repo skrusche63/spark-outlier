@@ -27,7 +27,7 @@ import de.kp.spark.core.model._
 import de.kp.spark.core.source._
 import de.kp.spark.outlier.Configuration
 
-import de.kp.spark.outlier.model.{Behavior,Sources}
+import de.kp.spark.outlier.model.{Sources}
 import de.kp.spark.outlier.spec.Sequences
 
 import scala.collection.mutable.ArrayBuffer

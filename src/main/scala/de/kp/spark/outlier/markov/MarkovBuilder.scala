@@ -19,8 +19,8 @@ package de.kp.spark.outlier.markov
 */
 
 import org.apache.spark.rdd.RDD
-import de.kp.spark.outlier.model._
 
+import de.kp.spark.core.model._
 import scala.collection.mutable.HashMap
 
 private case class Pair(ant:String,con:String)

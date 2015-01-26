@@ -24,7 +24,7 @@ import org.apache.spark.rdd.RDD
 import de.kp.spark.core.model._
 import de.kp.spark.outlier.Configuration
 
-import de.kp.spark.outlier.model.Behavior
+import de.kp.spark.core.model.Behavior
 import de.kp.spark.outlier.spec.Sequences
 
 import de.kp.spark.outlier.markov.StateSpec

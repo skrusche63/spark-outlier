@@ -36,12 +36,6 @@ case class BDetection(
   site:String,user:String,states:List[String],metric:Double,flag:String)
 
 case class BDetections(items:List[BDetection])
-  
-/**
- * This class specifies a list of user states that are used to represent
- * the customers (purchase) behavior within a certain period of time 
- */
-case class Behavior(site:String,user:String,states:List[String])
 
 case class LabeledPoint(
   label:String,features:Array[Double]

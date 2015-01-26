@@ -21,7 +21,7 @@ package de.kp.spark.outlier
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-import de.kp.spark.outlier.model._
+import de.kp.spark.core.model._
 import de.kp.spark.outlier.markov.{MarkovBuilder,StateMetrics,TransitionMatrix}
 
 import de.kp.spark.outlier.source.BehaviorModel
