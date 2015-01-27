@@ -22,7 +22,7 @@ import akka.actor.{ActorSystem,Props}
 import com.typesafe.config.ConfigFactory
 
 import de.kp.spark.core.SparkService
-import de.kp.spark.outlier.api.{AkkaApi,RestApi}
+import de.kp.spark.outlier.api.AkkaApi
 
 /**
  * The OutlierServer supports two different approaches to outlier discovery; one is based 
@@ -37,17 +37,6 @@ object OutlierServer extends SparkService {
   private val sc = createCtxLocal("IntentContext",Configuration.spark)      
 
   def main(args: Array[String]) {
-    
-    /**
-     * REST API 
-     */
-    val httpSystem = ActorSystem("rest-server")
-    sys.addShutdownHook(httpSystem.shutdown)
-    
-    val (host,port) = Configuration.rest
-    new RestApi(host,port,httpSystem,sc).start()
- 
-    println("REST API activated.")
     
     /**
      * AKKA API 
