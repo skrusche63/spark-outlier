@@ -40,27 +40,7 @@ class OutlierQuestor extends BaseActor {
       
       val Array(task,topic) = req.task.split(":")
       topic match {
-        case "feature" => {
 
-          val response = {
-
-            if (sink.featuresExist(req) == false) {    
-              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
-            
-            } else {         
-                
-              val outliers = sink.features(req)
-
-              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
-              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
-             
-            }
-          
-          } 
-          origin ! response
-          context.stop(self)
-           
-        }
         case "product" => {
 
           val response = {
@@ -82,7 +62,29 @@ class OutlierQuestor extends BaseActor {
           context.stop(self)
           
         }
-        
+         
+        case "vector" => {
+
+          val response = {
+
+            if (sink.featuresExist(req) == false) {    
+              failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
+            
+            } else {         
+                
+              val outliers = sink.features(req)
+
+              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
+              new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
+             
+            }
+          
+          } 
+          origin ! response
+          context.stop(self)
+           
+        }
+       
         case _ => {
           
           val msg = Messages.TASK_IS_UNKNOWN(uid,req.task)
