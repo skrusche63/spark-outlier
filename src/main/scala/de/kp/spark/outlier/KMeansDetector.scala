@@ -73,11 +73,12 @@ class KMeansDetector extends Serializable {
     /* 
      * STEP #1: Normalize data 
      */
-    val labels   = data.map(p => p.label)
+    val idlabels = data.map(p => (p.id,p.label))
+    
     val features = data.map(p => p.features)
     
     val normalized = MathHelper.normalize(features)    
-    val normdata = labels.zip(normalized).map(v => new LabeledPoint(v._1,v._2))
+    val normdata = idlabels.zip(normalized).map{case((id,label),features) => LabeledPoint(id,label, features)}
     
     /*
      * STEP #2: Find optimal number of clusters

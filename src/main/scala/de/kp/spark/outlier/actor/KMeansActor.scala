@@ -27,7 +27,7 @@ import de.kp.spark.core.model._
 import de.kp.spark.outlier.KMeansDetector
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.source.FeatureSource
+import de.kp.spark.outlier.source.VectorSource
 
 import de.kp.spark.outlier.sink.RedisSink
 
@@ -48,7 +48,7 @@ class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
           cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
           
-          val dataset = new FeatureSource(sc).get(req)          
+          val dataset = new VectorSource(sc).get(req)          
           findOutliers(req,dataset,params)
 
         } catch {

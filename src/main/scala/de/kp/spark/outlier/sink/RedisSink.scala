@@ -86,33 +86,12 @@ class RedisSink {
     val features = client.zrange(k, 0, -1)
 
     if (features.size() == 0) {
-      Serializer.serializeFDetections(new FDetections(List.empty[FDetection]))
+      Serializer.serializeFOutliers(FOutliers(List.empty[(Double,LabeledPoint)]))
     
     } else {
       
       val last = features.toList.last
-      val outliers = Serializer.deserializeFOutliers(last.split(":")(1)).items
-      
-      val detections = outliers.map(o => {
-                  
-        val (distance,point) = o
-        val (label,values) = (point.label,point.features)
-                  
-        val features = ArrayBuffer.empty[FField]
-        (1 until spec.length).foreach(i => {
-                    
-           val name  = spec(i)
-           val value = values(i-1)
-                    
-           features += new FField(name,value)
-                  
-        })
-                  
-        new FDetection(distance,label,features.toList)
-  
-      }).toList
-       
-      Serializer.serializeFDetections(new FDetections(detections))
+      last.split(":")(1)
       
     }
   }
