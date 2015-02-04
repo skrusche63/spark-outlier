@@ -24,15 +24,12 @@ import org.apache.spark.rdd.RDD
 import de.kp.spark.core.model._
 import de.kp.spark.outlier.markov.{MarkovBuilder,StateMetrics,TransitionMatrix}
 
-import de.kp.spark.outlier.source.BehaviorModel
-
 /**
  * The MarkovDetector discovers outliers from registered behavior.
  */
-class MarkovDetector(@transient sc:SparkContext) extends Serializable {
+class MarkovDetector(@transient sc:SparkContext,scale:Int,states:Array[String]) extends Serializable {
 
-  val behavior = new BehaviorModel(sc)
-  val metrics  = new StateMetrics(behavior.stateDefs)
+  val metrics  = new StateMetrics(states)
   
   def detect(sequences:RDD[Behavior],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,List[String],Double,String)] = {
 
@@ -58,7 +55,7 @@ class MarkovDetector(@transient sc:SparkContext) extends Serializable {
   }
 
   def train(sequences:RDD[Behavior]):TransitionMatrix = {
-    new MarkovBuilder(behavior.scaleDef,behavior.stateDefs).build(sequences)
+    new MarkovBuilder(scale,states).build(sequences)
   }
   
 }

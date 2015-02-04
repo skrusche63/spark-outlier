@@ -21,21 +21,22 @@ package de.kp.spark.outlier.spec
 import de.kp.spark.core.model._
 import de.kp.spark.core.redis.RedisCache
 
+import de.kp.spark.core.spec.Fields
 import de.kp.spark.outlier.Configuration
 
 import scala.xml._
 import scala.collection.mutable.HashMap
 
-object Sequences {
+object VectorSpec extends Fields {
   
-  val path = "sequences.xml"
+  val path = "features.xml"
 
   val (host,port) = Configuration.redis
   val cache = new RedisCache(host,port.toInt)
 
-  def get(req:ServiceRequest):Map[String,(String,String)] = {
+  def get(req:ServiceRequest):Map[String,String] = {
 
-    val fields =  HashMap.empty[String,(String,String)]
+    val fields = HashMap.empty[String,String]
   
     try {
           
@@ -43,12 +44,7 @@ object Sequences {
         
         val fieldspec = cache.fields(req)
         for (field <- fieldspec) {
-        
-          val _name = field.name
-          val _type = field.datatype
-          
-          val _mapping = field.value
-          fields += _name -> (_mapping,_type) 
+          fields += field.name -> field.value
           
         }
     
@@ -57,11 +53,9 @@ object Sequences {
         val root = XML.load(getClass.getClassLoader.getResource(path))     
         for (field <- root \ "field") {
       
-          val _name  = (field \ "@name").toString
-          val _type  = (field \ "@type").toString
-
-          val _mapping = field.text
-          fields += _name -> (_mapping,_type) 
+          val name = (field \ "@name").toString
+          val valu = field.text
+          fields += name -> valu
       
         }
       
@@ -76,3 +70,4 @@ object Sequences {
   }
 
 }
+

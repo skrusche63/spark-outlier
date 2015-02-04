@@ -23,7 +23,6 @@ import java.util.Date
 import de.kp.spark.core.Names
 
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.spec.Features
 
 import de.kp.spark.core.model._
 import de.kp.spark.core.redis.RedisClient
@@ -79,8 +78,6 @@ class RedisSink {
   }
   
   def features(req:ServiceRequest):String = {
-
-    val spec = Features.get(req)
 
     val k = "feature:" + req.data(Names.REQ_SITE) + ":" + req.data(Names.REQ_UID) + ":" + req.data(Names.REQ_NAME) 
     val features = client.zrange(k, 0, -1)

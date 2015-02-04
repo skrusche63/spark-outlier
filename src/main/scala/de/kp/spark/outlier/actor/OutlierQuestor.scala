@@ -41,7 +41,7 @@ class OutlierQuestor extends BaseActor {
       val Array(task,topic) = req.task.split(":")
       topic match {
 
-        case "product" => {
+        case "state" => {
 
           val response = {
 

@@ -36,18 +36,6 @@ case class BDetection(
   site:String,user:String,states:List[String],metric:Double,flag:String)
 
 case class BDetections(items:List[BDetection])
-/**
- * A LabeledPoint describes a combination of a feature
- * vector and an assigned label. Each data record is
- * also uniquely identifier by the 'id' parameter.
- * 
- * This parameter is usually equal to the row descriptor
- * of the data record (see vector description).
- * 
- */
-case class LabeledPoint(
-  id:Long,label:String,features:Array[Double]
-)
 
 case class BOutliers(items:List[(String,String,List[String],Double,String)])
 
@@ -60,18 +48,6 @@ object Algorithms {
 
   private def algorithms = List(KMEANS,MARKOV)  
   def isAlgorithm(algorithm:String):Boolean = algorithms.contains(algorithm)
-    
-}
-
-object Sources {
-  /* The names of the data source actually supported */
-  val FILE:String    = "FILE"
-  val ELASTIC:String = "ELASTIC" 
-  val JDBC:String    = "JDBC"    
-  val PARQUET:String = "PARQUET"   
-    
-  private val sources = List(FILE,ELASTIC,JDBC,PARQUET)
-  def isSource(source:String):Boolean = sources.contains(source)
     
 }
 

@@ -23,7 +23,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
 
-import de.kp.spark.outlier.model.LabeledPoint
+import de.kp.spark.core.model.LabeledPoint
 import de.kp.spark.outlier.util.{MathHelper,Optimizer}
 
 /**

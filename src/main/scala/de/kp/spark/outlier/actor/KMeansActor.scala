@@ -24,15 +24,18 @@ import org.apache.spark.rdd.RDD
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
-import de.kp.spark.outlier.KMeansDetector
+import de.kp.spark.outlier.{Configuration,KMeansDetector}
 import de.kp.spark.outlier.model._
 
-import de.kp.spark.outlier.source.VectorSource
+import de.kp.spark.core.source.VectorSource
+import de.kp.spark.core.source.handler.VectorHandler
 
 import de.kp.spark.outlier.sink.RedisSink
+import de.kp.spark.outlier.spec.VectorSpec
 
 class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
+  private val config = Configuration
   def receive = {
 
     case req:ServiceRequest => {
@@ -48,7 +51,9 @@ class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
           cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
           
-          val dataset = new VectorSource(sc).get(req)          
+          val source = new VectorSource(sc,config,VectorSpec)
+          val dataset = VectorHandler.vector2LabeledPoints(source.connect(req))
+          
           findOutliers(req,dataset,params)
 
         } catch {

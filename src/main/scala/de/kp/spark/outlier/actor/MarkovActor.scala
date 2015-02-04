@@ -24,16 +24,21 @@ import org.apache.spark.rdd.RDD
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
+import de.kp.spark.core.source.StateSource
+import de.kp.spark.core.source.handler.StateHandler
+
+import de.kp.spark.outlier.Configuration
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.MarkovDetector
 import de.kp.spark.outlier.markov.TransitionMatrix
 
-import de.kp.spark.outlier.source.{BehaviorSource}
 import de.kp.spark.outlier.sink.RedisSink
+import de.kp.spark.outlier.spec.StateSpec
 
 class MarkovActor(@transient sc:SparkContext) extends BaseActor {
 
+  private val config = Configuration
   def receive = {
 
     case req:ServiceRequest => {
@@ -49,7 +54,9 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
  
         try {
           
-          val dataset = new BehaviorSource(sc).get(req)
+          val source = new StateSource(sc,config,StateSpec)          
+          val dataset = StateHandler.state2Behavior(source.connect(req))
+          
           findOutliers(req,dataset,params)
 
         } catch {
@@ -93,7 +100,10 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
 
     cache.addStatus(req,OutlierStatus.DATASET)
 
-    val detector = new MarkovDetector(sc)
+    val scale = req.data(Names.REQ_SCALE).toInt
+    val states = req.data(Names.REQ_STATES).split(",")
+
+    val detector = new MarkovDetector(sc,scale,states)
     
     val model = detector.train(sequences)
     cache.addStatus(req,OutlierStatus.TRAINED)
