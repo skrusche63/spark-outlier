@@ -66,22 +66,15 @@ object Configuration extends CoreConf {
     List(items,features)
     
   }
+ 
+  override def mongo:HConf = {
+   
+    val cfg = config.getConfig("mongo")
+    val conf = new HConf()                          
 
-  def model():Map[String,String] = {
-  
-    val cfg = config.getConfig("model")
-    
-    Map(
-      "amount.height" -> cfg.getString("amount.height"), 
-      "amount.norm"   -> cfg.getString("amount.norm"), 
-
-      "price.high" -> cfg.getString("price.high"), 
-
-      "date.small"  -> cfg.getString("date.small"),
-      "date.medium" -> cfg.getString("date.medium") 
-
-    )
-    
+    conf.set("mongo.input.uri",cfg.getString("mongo.input.uri"))
+    conf
+     
   }
  
   override def mysql:(String,String,String,String) = {
