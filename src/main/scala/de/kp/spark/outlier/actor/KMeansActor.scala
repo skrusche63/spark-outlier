@@ -51,7 +51,7 @@ class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
           cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
           
-          val source = new VectorSource(sc,config,VectorSpec)
+          val source = new VectorSource(sc,config,new VectorSpec(req))
           val dataset = VectorHandler.vector2LabeledPoints(source.connect(req))
           
           findOutliers(req,dataset,params)

@@ -1,6 +1,6 @@
 <fieldspec>
-	<field name="row" type="Long">row</field>
-	<field name="col" type="Long">col</field>
-	<field name="lbl" type="String">label</field>
-	<field name="val" type="String,Double">value</field>
+	<field name="row" type="long">row</field>
+	<field name="col" type="long">col</field>
+	<field name="lbl" type="string">label</field>
+	<field name="val" type="double">value</field>
 </fieldspec>

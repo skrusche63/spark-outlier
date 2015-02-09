@@ -54,7 +54,7 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
  
         try {
           
-          val source = new StateSource(sc,config,StateSpec)          
+          val source = new StateSource(sc,config,new StateSpec(req))          
           val dataset = StateHandler.state2Behavior(source.connect(req))
           
           findOutliers(req,dataset,params)

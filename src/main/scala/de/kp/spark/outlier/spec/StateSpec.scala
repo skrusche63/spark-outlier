@@ -25,53 +25,58 @@ import de.kp.spark.core.spec.Fields
 import de.kp.spark.outlier.Configuration
 
 import scala.xml._
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.Buffer
 
-object StateSpec extends Fields {
+class StateSpec(req:ServiceRequest) extends Fields {
   
-  val path = "sequences.xml"
+  val path = "states.xml"
 
   val (host,port) = Configuration.redis
   val cache = new RedisCache(host,port.toInt)
 
-  def get(req:ServiceRequest):Map[String,String] = {
-
-    val fields =  HashMap.empty[String,String]
+  private val fields = load
   
+  def mapping:Map[String,String] = fields.map(x => (x.name,x.value)).toMap
+
+  def names:List[String] = fields.map(_.name)
+  
+  def types:List[String] = fields.map(_.datatype)
+  
+  private val load:List[Field] = {
+    
+    val data = Buffer.empty[Field]
+    
     try {
           
-      if (cache.fieldsExist(req)) {      
+      if (cache.fieldsExist(req)) {   
         
         val fieldspec = cache.fields(req)
         for (field <- fieldspec) {
-        
-          val _name = field.name
-          val _mapping = field.value
-
-          fields += _name -> _mapping
-          
+          data += Field(field.name,field.datatype,field.value)
         }
-    
-      } else {
         
+      } else {
+
         val root = XML.load(getClass.getClassLoader.getResource(path))     
         for (field <- root \ "field") {
       
           val _name  = (field \ "@name").toString
-          val _mapping = field.text
+          val _type  = (field \ "@type").toString
 
-          fields += _name -> _mapping
+          val _mapping = field.text
+          
+          data += Field(_name,_type,_mapping)
       
         }
       
-      }
+     }
       
     } catch {
       case e:Exception => {}
     }
     
-    fields.toMap
+    data.toList
     
-  }
+  } 
 
 }
