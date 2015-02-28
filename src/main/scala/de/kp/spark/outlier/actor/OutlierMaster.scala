@@ -18,15 +18,14 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.SparkContext
 import akka.actor.{ActorRef,Props}
 
 import de.kp.spark.core.actor._
 import de.kp.spark.core.model._
 
-import de.kp.spark.outlier.Configuration
+import de.kp.spark.outlier.{Configuration,RequestContext}
 
-class OutlierMaster(@transient sc:SparkContext) extends BaseMaster(Configuration) {
+class OutlierMaster(@transient ctx:RequestContext) extends BaseMaster(Configuration) {
   
   protected def actor(worker:String):ActorRef = {
     
@@ -55,7 +54,7 @@ class OutlierMaster(@transient sc:SparkContext) extends BaseMaster(Configuration
       case "status" => context.actorOf(Props(new StatusQuestor(Configuration)))
         
       case "get"   => context.actorOf(Props(new OutlierQuestor()))
-      case "train" => context.actorOf(Props(new OutlierMiner(sc)))
+      case "train" => context.actorOf(Props(new OutlierMiner(ctx)))
       
       case _ => null
       

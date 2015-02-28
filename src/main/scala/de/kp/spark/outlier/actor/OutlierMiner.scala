@@ -18,7 +18,6 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.SparkContext
 import akka.actor.{ActorRef,Props}
 
 import de.kp.spark.core.Names
@@ -26,14 +25,14 @@ import de.kp.spark.core.Names
 import de.kp.spark.core.actor._
 import de.kp.spark.core.model._
 
-import de.kp.spark.outlier.Configuration
+import de.kp.spark.outlier.{Configuration,RequestContext}
 import de.kp.spark.outlier.model._
 
 /**
  * The focus of the OutlierMiner is on the model building task,
  * either for cluster analysis based tasks or markov based states.
  */
-class OutlierMiner(@transient sc:SparkContext) extends BaseTrainer(Configuration) {
+class OutlierMiner(@transient ctx:RequestContext) extends BaseTrainer(Configuration) {
 
   protected def validate(req:ServiceRequest):Option[String] = {
 
@@ -87,10 +86,10 @@ class OutlierMiner(@transient sc:SparkContext) extends BaseTrainer(Configuration
 
     val algorithm = req.data(Names.REQ_ALGORITHM)
     if (algorithm == Algorithms.KMEANS) {      
-      context.actorOf(Props(new KMeansActor(sc)))      
+      context.actorOf(Props(new KMeansActor(ctx)))      
     
     } else {
-     context.actorOf(Props(new MarkovActor(sc)))
+     context.actorOf(Props(new MarkovActor(ctx)))
     
     }
   

@@ -18,13 +18,12 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
-import de.kp.spark.outlier.{Configuration,KMeansDetector}
+import de.kp.spark.outlier.{Configuration,KMeansDetector,RequestContext}
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.core.source.VectorSource
@@ -33,7 +32,7 @@ import de.kp.spark.core.source.handler.VectorHandler
 import de.kp.spark.outlier.sink.RedisSink
 import de.kp.spark.outlier.spec.VectorSpec
 
-class KMeansActor(@transient sc:SparkContext) extends BaseActor {
+class KMeansActor(@transient ctx:RequestContext) extends BaseActor {
 
   private val config = Configuration
   def receive = {
@@ -51,7 +50,7 @@ class KMeansActor(@transient sc:SparkContext) extends BaseActor {
 
           cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
           
-          val source = new VectorSource(sc,config,new VectorSpec(req))
+          val source = new VectorSource(ctx.sc,config,new VectorSpec(req))
           val dataset = VectorHandler.vector2LabeledPoints(source.connect(req))
           
           findOutliers(req,dataset,params)

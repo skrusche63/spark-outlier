@@ -18,7 +18,6 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import de.kp.spark.core.Names
@@ -27,7 +26,7 @@ import de.kp.spark.core.model._
 import de.kp.spark.core.source.StateSource
 import de.kp.spark.core.source.handler.StateHandler
 
-import de.kp.spark.outlier.Configuration
+import de.kp.spark.outlier.{Configuration,RequestContext}
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.MarkovDetector
@@ -36,7 +35,7 @@ import de.kp.spark.outlier.markov.TransitionMatrix
 import de.kp.spark.outlier.sink.RedisSink
 import de.kp.spark.outlier.spec.StateSpec
 
-class MarkovActor(@transient sc:SparkContext) extends BaseActor {
+class MarkovActor(@transient ctx:RequestContext) extends BaseActor {
 
   private val config = Configuration
   def receive = {
@@ -50,11 +49,11 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
 
       if (missing == false) {
         /* Register status */
-        cache.addStatus(req,OutlierStatus.STARTED)
+        cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
  
         try {
           
-          val source = new StateSource(sc,config,new StateSpec(req))          
+          val source = new StateSource(ctx.sc,config,new StateSpec(req))          
           val dataset = StateHandler.state2Behavior(source.connect(req))
           
           findOutliers(req,dataset,params)
@@ -103,7 +102,7 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
     val scale = req.data(Names.REQ_SCALE).toInt
     val states = req.data(Names.REQ_STATES).split(",")
 
-    val detector = new MarkovDetector(sc,scale,states)
+    val detector = new MarkovDetector(ctx,scale,states)
     
     val model = detector.train(sequences)
     cache.addStatus(req,OutlierStatus.TRAINED)
@@ -114,10 +113,10 @@ class MarkovActor(@transient sc:SparkContext) extends BaseActor {
     saveOutliers(req,new BOutliers(outliers))
           
     /* Update cache */
-    cache.addStatus(req,OutlierStatus.FINISHED)
+    cache.addStatus(req,OutlierStatus.TRAINING_FINISHED)
 
     /* Notify potential listeners */
-    notify(req,OutlierStatus.FINISHED)
+    notify(req,OutlierStatus.TRAINING_FINISHED)
     
   }
   

@@ -1,4 +1,4 @@
-package de.kp.spark.outlier.api
+package de.kp.spark.outlier
 /* Copyright (c) 2014 Dr. Krusche & Partner PartG
 * 
 * This file is part of the Spark-Outlier project
@@ -18,16 +18,17 @@ package de.kp.spark.outlier.api
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import akka.actor.{ActorSystem,Props}
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SQLContext
 
-import de.kp.spark.outlier.RequestContext
-import de.kp.spark.outlier.actor.OutlierMaster
+class RequestContext(  /*
+   * Reference to the common SparkContext; this context can be used
+   * to access HDFS based data sources or leverage the Spark machine
+   * learning library or other Spark based functionality
+   */
+  @transient val sc:SparkContext) extends Serializable {
 
-class AkkaApi(system:ActorSystem,@transient val ctx:RequestContext) {
+  val sqlc = new SQLContext(sc)
+  val config = Configuration
 
-  val master = system.actorOf(Props(new OutlierMaster(ctx)), name="outlier-master")
-
-  def start() {
-     while (true) {}   
-  }
 }

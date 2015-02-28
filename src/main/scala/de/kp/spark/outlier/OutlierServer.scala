@@ -38,6 +38,8 @@ object OutlierServer extends SparkService {
 
   def main(args: Array[String]) {
     
+    val ctx = new RequestContext(sc)
+    
     /**
      * AKKA API 
      */
@@ -46,7 +48,7 @@ object OutlierServer extends SparkService {
     val akkaSystem = ActorSystem("akka-server",ConfigFactory.load(conf))
     sys.addShutdownHook(akkaSystem.shutdown)
     
-    new AkkaApi(akkaSystem,sc).start()
+    new AkkaApi(akkaSystem,ctx).start()
  
     println("AKKA API activated.")
       
