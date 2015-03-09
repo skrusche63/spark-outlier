@@ -18,12 +18,10 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.rdd.RDD
-
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
-import de.kp.spark.outlier.{Configuration,KMeansDetector,RequestContext}
+import de.kp.spark.outlier.{KMeansDetector,RequestContext}
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.core.source.VectorSource
@@ -32,80 +30,44 @@ import de.kp.spark.core.source.handler.VectorHandler
 import de.kp.spark.outlier.sink.RedisSink
 import de.kp.spark.outlier.spec.VectorSpec
 
-class KMeansActor(@transient ctx:RequestContext) extends BaseActor {
+import scala.collection.mutable.ArrayBuffer
 
-  private val config = Configuration
-  def receive = {
-
-    case req:ServiceRequest => {
+class KMeansActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
+  
+  override def validate(req:ServiceRequest) {
       
-      val params = properties(req)
+    if (req.data.contains("k") == false) 
+      throw new Exception("Parameter 'k' is missing.")
+        
+    if (req.data.contains("iterations") == false)
+      throw new Exception("Parameter 'iterations' is missing.")
+        
+    if (req.data.contains("strategy") == false)
+      throw new Exception("Parameter 'strategy' is missing.")
+    
+  }
+  
+  override def train(req:ServiceRequest) {
+          
+    val source = new VectorSource(ctx.sc,ctx.config,new VectorSpec(req))
+    val dataset = VectorHandler.vector2LabeledPoints(source.connect(req))
+      
+    val params = ArrayBuffer.empty[Param]
+      
+    val k = req.data("k").toInt
+    params += Param("k","integer",k.toString)
 
-      /* Send response to originator of request */
-      sender ! response(req, (params == null))
+    val strategy = req.data("strategy").asInstanceOf[String]
+    params += Param("strategy","string",strategy)
 
-      if (params != null) {
+    val iter = req.data("iterations").toInt
+    params += Param("iterations","integer",iter.toString)
+
+    cache.addParams(req, params.toList)
  
-        try {
-
-          cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
-          
-          val source = new VectorSource(ctx.sc,config,new VectorSpec(req))
-          val dataset = VectorHandler.vector2LabeledPoints(source.connect(req))
-          
-          findOutliers(req,dataset,params)
-
-        } catch {
-          case e:Exception => cache.addStatus(req,OutlierStatus.FAILURE)          
-        }
-
-      }
-      
-      context.stop(self)
-          
-    }
-    
-    case _ => {
-      
-      log.error("unknown request.")
-      context.stop(self)
-      
-    }
-    
-  }
-  
-  private def properties(req:ServiceRequest):(Int,String) = {
-      
-    try {
-      
-      val k = req.data(Names.REQ_K).asInstanceOf[Int]
-      val strategy = req.data(Names.REQ_STRATEGY).asInstanceOf[String]
-        
-      return (k,strategy)
-        
-    } catch {
-      case e:Exception => {
-         return null          
-      }
-    }
-    
-  }
-  
-  private def findOutliers(req:ServiceRequest,dataset:RDD[LabeledPoint],params:(Int,String)) {
-
-    cache.addStatus(req,OutlierStatus.DATASET)
-    
-    /* Find outliers in set of labeled datapoints */
-    val (k,strategy) = params     
-    val outliers = new KMeansDetector().find(dataset,strategy,100,k).toList
+    val outliers = new KMeansDetector().find(dataset,strategy,iter,k).toList
           
     saveOutliers(req,new FOutliers(outliers))
-          
-    /* Update cache */
-    cache.addStatus(req,OutlierStatus.TRAINING_FINISHED)
-
-   /* Notify potential listeners */
-   notify(req,OutlierStatus.TRAINING_FINISHED)
     
   }
   

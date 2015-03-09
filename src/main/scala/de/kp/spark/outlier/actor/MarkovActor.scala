@@ -18,86 +18,44 @@ package de.kp.spark.outlier.actor
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.apache.spark.rdd.RDD
-
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
 import de.kp.spark.core.source.StateSource
 import de.kp.spark.core.source.handler.StateHandler
 
-import de.kp.spark.outlier.{Configuration,RequestContext}
+import de.kp.spark.outlier.RequestContext
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.MarkovDetector
-import de.kp.spark.outlier.markov.TransitionMatrix
 
 import de.kp.spark.outlier.sink.RedisSink
 import de.kp.spark.outlier.spec.StateSpec
 
-class MarkovActor(@transient ctx:RequestContext) extends BaseActor {
+import scala.collection.mutable.ArrayBuffer
 
-  private val config = Configuration
-  def receive = {
-
-    case req:ServiceRequest => {
-      
-      val params = properties(req)
-      val missing = (params == null)
-
-      sender ! response(req, missing)
-
-      if (missing == false) {
-        /* Register status */
-        cache.addStatus(req,OutlierStatus.TRAINING_STARTED)
- 
-        try {
-          
-          val source = new StateSource(ctx.sc,config,new StateSpec(req))          
-          val dataset = StateHandler.state2Behavior(source.connect(req))
-          
-          findOutliers(req,dataset,params)
-
-        } catch {
-          case e:Exception => cache.addStatus(req,OutlierStatus.FAILURE)          
-        }
- 
-
-      }
-      
-      context.stop(self)
-          
-    }
-    
-    case _ => {
-      
-      log.error("Unkonw request.")
-      context.stop(self)
-      
-    }
-    
-  }
+class MarkovActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
   
-  private def properties(req:ServiceRequest):(String,Double) = {
-      
-    try {
-      
-      val threshold = req.data(Names.REQ_THRESHOLD).asInstanceOf[Double]
-      val strategy  = req.data(Names.REQ_STRATEGY).asInstanceOf[String]
-         
-      return (strategy,threshold)
+  override def validate(req:ServiceRequest) {
         
-    } catch {
-      case e:Exception => {
-         return null          
-      }
-    }
+    if (req.data.contains("scale") == false)
+      throw new Exception("Parameter 'scale' is missing.")
+        
+    if (req.data.contains("states") == false)
+      throw new Exception("Parameter 'states' is missing.")
+        
+    if (req.data.contains("strategy") == false)
+      throw new Exception("Parameter 'strategy' is missing.")
+    
+    if (req.data.contains("threshold") == false) 
+      throw new Exception("Parameter 'threshold' is missing.")
     
   }
     
-  private def findOutliers(req:ServiceRequest,sequences:RDD[Behavior],params:(String,Double)) {
-
-    cache.addStatus(req,OutlierStatus.DATASET)
+  override def train(req:ServiceRequest) {
+          
+    val source = new StateSource(ctx.sc,ctx.config,new StateSpec(req))          
+    val sequences = StateHandler.state2Behavior(source.connect(req))
 
     val scale = req.data(Names.REQ_SCALE).toInt
     val states = req.data(Names.REQ_STATES).split(",")
@@ -105,18 +63,20 @@ class MarkovActor(@transient ctx:RequestContext) extends BaseActor {
     val detector = new MarkovDetector(ctx,scale,states)
     
     val model = detector.train(sequences)
-    cache.addStatus(req,OutlierStatus.TRAINED)
+      
+    val params = ArrayBuffer.empty[Param]
+      
+    val strategy  = req.data("strategy")
+    params += Param("strategy","string",strategy)
+
+    val threshold = req.data("threshold").toDouble
+    params += Param("threshold","double",threshold.toString)
+
+    cache.addParams(req, params.toList)
          
-    val (strategy,threshold) = params          
     val outliers = detector.detect(sequences,strategy,threshold,model).collect().toList
           
     saveOutliers(req,new BOutliers(outliers))
-          
-    /* Update cache */
-    cache.addStatus(req,OutlierStatus.TRAINING_FINISHED)
-
-    /* Notify potential listeners */
-    notify(req,OutlierStatus.TRAINING_FINISHED)
     
   }
   
