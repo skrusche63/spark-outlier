@@ -23,13 +23,14 @@ import akka.actor.{Actor,ActorLogging,ActorRef,Props}
 import de.kp.spark.core.Names
 import de.kp.spark.core.model._
 
+import de.kp.spark.core.redis.RedisDB
+
 import de.kp.spark.outlier.model._
-import de.kp.spark.outlier.sink.RedisSink
 
 class OutlierQuestor extends BaseActor {
 
   implicit val ec = context.dispatcher
-  private val sink = new RedisSink()
+  private val redis = new RedisDB(host,port.toInt)
 
   def receive = {
     
@@ -45,12 +46,12 @@ class OutlierQuestor extends BaseActor {
 
           val response = {
 
-            if (sink.behaviorExists(req) == false) {   
+            if (redis.outliersExists(req) == false) {   
               failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
             } else {       
                 
-              val outliers = sink.behavior(req)
+              val outliers = redis.outliers(req)
 
               val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
@@ -67,14 +68,14 @@ class OutlierQuestor extends BaseActor {
 
           val response = {
 
-            if (sink.featuresExist(req) == false) {    
+            if (redis.pointsExist(req) == false) {    
               failure(req,Messages.OUTLIERS_DO_NOT_EXIST(uid))
             
             } else {         
                 
-              val outliers = sink.features(req)
+              val points = redis.points(req)
 
-              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> outliers)            
+              val data = Map(Names.REQ_UID -> uid, Names.REQ_RESPONSE -> points)            
               new ServiceResponse(req.service,req.task,data,OutlierStatus.SUCCESS)
              
             }

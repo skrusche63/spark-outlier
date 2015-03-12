@@ -24,17 +24,19 @@ import de.kp.spark.core.model._
 import de.kp.spark.core.source.StateSource
 import de.kp.spark.core.source.handler.StateHandler
 
+import de.kp.spark.core.redis.RedisDB
+
 import de.kp.spark.outlier.RequestContext
 import de.kp.spark.outlier.model._
 
 import de.kp.spark.outlier.MarkovDetector
-
-import de.kp.spark.outlier.sink.RedisSink
 import de.kp.spark.outlier.spec.StateSpec
 
 import scala.collection.mutable.ArrayBuffer
 
 class MarkovActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
+
+  val redis = new RedisDB(host,port.toInt)
   
   override def validate(req:ServiceRequest) {
         
@@ -76,15 +78,12 @@ class MarkovActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
          
     val outliers = detector.detect(sequences,strategy,threshold,model).collect().toList
           
-    saveOutliers(req,new BOutliers(outliers))
+    saveOutliers(req,new Outliers(outliers))
     
   }
   
-  private def saveOutliers(req:ServiceRequest,outliers:BOutliers) {
-    
-    val sink = new RedisSink()
-    sink.addBOutliers(req,outliers)
-    
+  private def saveOutliers(req:ServiceRequest,outliers:Outliers) {
+    redis.addOutliers(req,outliers)
   }
 
 }

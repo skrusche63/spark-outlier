@@ -18,29 +18,8 @@ package de.kp.spark.outlier.model
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.json4s._
-
-import org.json4s.native.Serialization
-import org.json4s.native.Serialization.{read,write}
-
 import de.kp.spark.core.model._
-
-case class FField(field:String,value:Double)
-
-case class FDetection(
-  distance:Double,label:String,features:List[FField])
-
-case class FDetections(items:List[FDetection])
-  
-case class BDetection(
-  site:String,user:String,states:List[String],metric:Double,flag:String)
-
-case class BDetections(items:List[BDetection])
-
-case class BOutliers(items:List[(String,String,List[String],Double,String)])
-
-case class FOutliers(items:List[(Double,LabeledPoint)])
-
+ 
 object Algorithms {
   
   val KMEANS:String = "KMEANS"
@@ -51,26 +30,7 @@ object Algorithms {
     
 }
 
-object Serializer extends BaseSerializer {
-
-  /*
-   * Support for serialization and deserialization of detections
-   */
-  def serializeBDetections(detections:BDetections):String = write(detections)
-  def serializeFDetections(detections:FDetections):String = write(detections)
-
-  def deserializeBDetections(detections:String):BDetections = read[BDetections](detections)
-  def deserializeFDetections(detections:String):FDetections = read[FDetections](detections)
-  /*
-   * Support for serialization and deserialization of outliers
-   */  
-  def serializeBOutliers(outliers:BOutliers):String = write(outliers)
-  def serializeFOutliers(outliers:FOutliers):String = write(outliers)
-  
-  def deserializeBOutliers(outliers:String):BOutliers = read[BOutliers](outliers)
-  def deserializeFOutliers(outliers:String):FOutliers = read[FOutliers](outliers)
-  
-}
+object Serializer extends BaseSerializer
 
 object Messages extends BaseMessages {
  

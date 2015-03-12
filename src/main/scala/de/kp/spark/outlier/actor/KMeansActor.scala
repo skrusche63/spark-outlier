@@ -27,17 +27,19 @@ import de.kp.spark.outlier.model._
 import de.kp.spark.core.source.VectorSource
 import de.kp.spark.core.source.handler.VectorHandler
 
-import de.kp.spark.outlier.sink.RedisSink
-import de.kp.spark.outlier.spec.VectorSpec
+import de.kp.spark.core.redis.RedisDB
 
+import de.kp.spark.outlier.spec.VectorSpec
 import scala.collection.mutable.ArrayBuffer
 
 class KMeansActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
-  
+
+  val redis = new RedisDB(host,port.toInt)
+ 
   override def validate(req:ServiceRequest) {
       
-    if (req.data.contains("k") == false) 
-      throw new Exception("Parameter 'k' is missing.")
+    if (req.data.contains("top") == false) 
+      throw new Exception("Parameter 'top' is missing.")
         
     if (req.data.contains("iterations") == false)
       throw new Exception("Parameter 'iterations' is missing.")
@@ -54,8 +56,8 @@ class KMeansActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
       
     val params = ArrayBuffer.empty[Param]
       
-    val k = req.data("k").toInt
-    params += Param("k","integer",k.toString)
+    val top = req.data("top").toInt
+    params += Param("top","integer",top.toString)
 
     val strategy = req.data("strategy").asInstanceOf[String]
     params += Param("strategy","string",strategy)
@@ -65,17 +67,13 @@ class KMeansActor(@transient ctx:RequestContext) extends TrainActor(ctx) {
 
     cache.addParams(req, params.toList)
  
-    val outliers = new KMeansDetector().find(dataset,strategy,iter,k).toList
-          
-    saveOutliers(req,new FOutliers(outliers))
+    val points = new KMeansDetector().find(dataset,strategy,iter,top).toList          
+    savePoints(req,ClusteredPoints(points))
     
   }
   
-  private def saveOutliers(req:ServiceRequest,outliers:FOutliers) {
-    
-    val sink = new RedisSink()
-    sink.addFOutliers(req,outliers)
-    
+  private def savePoints(req:ServiceRequest,points:ClusteredPoints) {
+    redis.addPoints(req,points)    
   }
   
 }

@@ -23,7 +23,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
 
-import de.kp.spark.core.model.LabeledPoint
+import de.kp.spark.core.model._
 import de.kp.spark.outlier.util.{MathHelper,Optimizer}
 
 /**
@@ -32,14 +32,16 @@ import de.kp.spark.outlier.util.{MathHelper,Optimizer}
  */
 class KMeansDetector extends Serializable {
   
-  def find(data:RDD[LabeledPoint],strategy:String="entropy",iterations:Int,top:Int):Array[(Double,LabeledPoint)] = {
+  def find(data:RDD[LabeledPoint],strategy:String="entropy",iterations:Int,top:Int):List[ClusteredPoint] = {
     
     val (k,normdata) = prepare(data,strategy,iterations)
     detect(normdata,k,iterations,top)
     
   }
   
-  def detect(normdata:RDD[LabeledPoint],k:Int,iterations:Int,top:Int):Array[(Double,LabeledPoint)] = {
+  def detect(normdata:RDD[LabeledPoint],k:Int,iterations:Int,top:Int):List[ClusteredPoint] = {
+    
+    val sc = normdata.context
     
     /*
      * STEP #1: Compute KMeans model
@@ -53,18 +55,32 @@ class KMeansDetector extends Serializable {
      * STEP #2: Calculate the distances for all points from their clusters; 
      * outliers are those that have the farest distance
      */
-    val distances = normdata.map(point => {
+    val bcmodel = sc.broadcast(model)
+    val points = normdata.map(point => {
       
-      val features = point.features
+      val vector = Vectors.dense(point.features)
       
-      val cluster = model.predict(Vectors.dense(features))
-      val centroid = centroids(cluster)
+      val cluster = bcmodel.value.predict(vector)
+      val centroid = bcmodel.value.clusterCenters(cluster)
       
-      (Optimizer.distance(centroid.toArray,features),point)
+      val distance = Optimizer.distance(centroid.toArray,vector.toArray)
+ 
+      (cluster,distance,point)
       
     })
-
-    distances.top(top)(Ordering.by[(Double,LabeledPoint),Double](_._1))
+    
+    /*
+     * Retrieve top k features (LabeledPoint) with respect to their clusters;
+     * the cluster identifier is used as a grouping mechanism to specify which
+     * features belong to which centroid
+     */
+    val bctop = sc.broadcast(top)
+    points.groupBy(_._1).flatMap(x => x._2.toList.sortBy(_._2).reverse.take(bctop.value)).map(data => {
+    
+      val (cluster,distance,point) = data
+      new ClusteredPoint(cluster,distance,point)
+      
+    }).collect().toList
     
   }
 

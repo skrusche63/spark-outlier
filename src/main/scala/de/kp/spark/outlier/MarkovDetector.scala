@@ -30,7 +30,7 @@ class MarkovDetector(@transient ctx:RequestContext,scale:Int,states:Array[String
 
   val metrics  = new StateMetrics(states)
   
-  def detect(sequences:RDD[Behavior],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[(String,String,List[String],Double,String)] = {
+  def detect(sequences:RDD[Behavior],algorithm:String,threshold:Double,matrix:TransitionMatrix):RDD[Outlier] = {
 
     val bmatrix = ctx.sc.broadcast(matrix)    
     sequences.map(seq => {
@@ -47,7 +47,7 @@ class MarkovDetector(@transient ctx:RequestContext,scale:Int,states:Array[String
       }
       
       val flag = if (metric > threshold) "yes" else "no"      
-      (site,user,states,metric,flag)
+      Outlier(site,user,states,metric,flag)
       
     })
     
